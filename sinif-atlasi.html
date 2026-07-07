@@ -613,7 +613,7 @@
       bottom: 14px;
       z-index: 650;
       display: grid;
-      grid-template-columns: repeat(3, 1fr);
+      grid-template-columns: repeat(2, 1fr);
       gap: 8px;
       pointer-events: none;
     }
@@ -1190,6 +1190,17 @@
       font-size: 13px;
       letter-spacing: 0.06em;
       text-transform: uppercase;
+    }
+
+    .social-embed {
+      min-height: 80px;
+      border-radius: 8px;
+      overflow: hidden;
+    }
+
+    .social-embed .twitter-timeline {
+      display: block;
+      width: 100%;
     }
 
     .media-banner,
@@ -1890,7 +1901,7 @@
       }
 
       .map-summary {
-        grid-template-columns: repeat(3, 1fr);
+        grid-template-columns: repeat(2, 1fr);
       }
 
       .right {
@@ -2198,7 +2209,7 @@
     }
 
     .smart-filter-bar {
-      grid-template-columns: repeat(4, minmax(0, 1fr));
+      grid-template-columns: repeat(2, minmax(0, 1fr));
       gap: 6px;
       padding: 4px;
       border: 1px solid rgba(148, 163, 184, 0.22);
@@ -2629,6 +2640,33 @@
       font-size: 13.5px;
     }
 
+    .coord-list {
+      display: grid;
+      gap: 6px;
+      margin-top: 4px;
+    }
+
+    .coord-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      align-items: center;
+    }
+
+    .coord-label {
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .coord-value {
+      font-family: ui-monospace, "SF Mono", Consolas, monospace;
+      font-size: 12px;
+      color: var(--ink);
+      background: var(--soft);
+      padding: 2px 7px;
+      border-radius: 999px;
+    }
+
     .resistance-card {
       padding: 16px;
       background:
@@ -2770,7 +2808,7 @@
       }
 
       .map-summary {
-        grid-template-columns: repeat(3, minmax(0, 1fr));
+        grid-template-columns: repeat(2, minmax(0, 1fr));
       }
 
       .right {
@@ -3307,11 +3345,9 @@
     <main class="workspace">
       <aside class="left">
         <section class="filters">
-          <div class="module-title"><span>Mücadeleler</span><span id="visibleCount">0 kayıt</span></div>
+          <div class="module-title"><span>Direnişler</span><span id="visibleCount">0 kayıt</span></div>
           <div class="smart-filter-bar" aria-label="Hızlı filtreler">
-            <button class="segment-button is-active" type="button" data-smart-filter="all">Tümü</button>
-            <button class="segment-button" type="button" data-smart-filter="active">Süren</button>
-            <button class="segment-button" type="button" data-smart-filter="won">Kazanılan</button>
+            <button class="segment-button is-active" type="button" data-smart-filter="active">Süren</button>
             <button class="segment-button" type="button" data-smart-filter="favorites">Favoriler</button>
           </div>
           <div class="filter-grid">
@@ -3320,7 +3356,7 @@
           </div>
         </section>
 
-        <section id="caseList" class="list" aria-label="Mücadele listesi"></section>
+        <section id="caseList" class="list" aria-label="Direniş listesi"></section>
       </aside>
 
       <section class="map-stage" aria-label="Coğrafi istihbarat">
@@ -3331,13 +3367,12 @@
           <button id="togglePanel" class="hud-button" type="button">Detayı Aç</button>
         </div>
         <div class="map-summary">
-          <button class="mini-stat" type="button" data-stat-filter="active"><span>Aktif mücadeleler</span><strong id="activeCount">0</strong></button>
-          <button class="mini-stat" type="button" data-stat-filter="won"><span>Kazanımla sonuçlanan</span><strong id="winCount">0</strong></button>
+          <button class="mini-stat" type="button" data-stat-filter="active"><span>Aktif direnişler</span><strong id="activeCount">0</strong></button>
           <button class="mini-stat" type="button" data-stat-filter="needs_verification"><span>Teyit bekleyen</span><strong id="needsVerify">0</strong></button>
         </div>
       </section>
 
-      <aside id="detailPanel" class="right" aria-label="Mücadele detay paneli">
+      <aside id="detailPanel" class="right" aria-label="Direniş detay paneli">
         <header class="case-head">
           <div class="module-title"><span>Direniş Kartı</span><span id="caseId">-</span></div>
           <button id="closePanel" class="panel-close" type="button" aria-label="Detay panelini kapat">×</button>
@@ -3578,7 +3613,6 @@
       detailPanel: document.getElementById("detailPanel"),
       visibleCount: document.getElementById("visibleCount"),
       activeCount: document.getElementById("activeCount"),
-      winCount: document.getElementById("winCount"),
       needsVerify: document.getElementById("needsVerify"),
       caseTitle: document.getElementById("caseTitle"),
       caseId: document.getElementById("caseId"),
@@ -3708,7 +3742,9 @@
     let filtersReady = false;
     let baseRows = [];
     let refreshTimer = null;
-    let activeSmartFilter = "all";
+    // Varsayılan görünüm yalnızca süren (aktif) direnişleri gösterir — tam
+    // liste iddiası her zaman eksik kalacağı için "tümü" seçeneği kaldırıldı.
+    let activeSmartFilter = "active";
 
     const FIELD_ALIASES = {
       "Alan": ["Alan", "Kategori", "Başlık alanı", "Baslik alani"],
@@ -4052,7 +4088,7 @@
           <h3>${esc(value(entry.row, fields.title))}</h3>
           <div class="tag-row">
             <span class="tag">${esc(value(entry.row, fields.area))}</span>
-            <span class="tag">${esc(entry.row.verification.label)}</span>
+            <span class="tag">${esc(value(entry.row, fields.status))}</span>
           </div>
           <p>${esc(entry.point.label || value(entry.row, fields.location))}</p>
           <button type="button" data-open-case="${esc(entry.row.id)}">Kartı aç</button>
@@ -4117,7 +4153,7 @@
 
     function renderList(rows) {
       if (!rows.length) {
-        els.caseList.innerHTML = '<div class="empty"><b>Eşleşen kayıt yok.</b><span>Filtreleri sıfırlayıp tüm mücadeleleri görebilir ya da canlı taramayı başlatabilirsin.</span></div>';
+        els.caseList.innerHTML = '<div class="empty"><b>Eşleşen kayıt yok.</b><span>Filtreleri sıfırlayıp diğer direnişleri görebilirsin.</span></div>';
         return;
       }
       els.caseList.innerHTML = rows.map((row) => `
@@ -4177,7 +4213,7 @@
     }
 
     function setSmartFilter(filter) {
-      activeSmartFilter = filter || "all";
+      activeSmartFilter = filter || "active";
       resetStandardFilters();
       render();
       const rows = filteredCases();
@@ -4191,7 +4227,6 @@
       const allRows = cases;
       els.visibleCount.textContent = `${rows.length} kayıt`;
       els.activeCount.textContent = allRows.filter((row) => row.statusKind === "active").length;
-      els.winCount.textContent = allRows.filter((row) => row.statusKind === "won").length;
       els.needsVerify.textContent = allRows.filter((row) => row.verification.key !== "single").length;
       syncSmartFilters();
     }
@@ -4219,6 +4254,50 @@
           <span>${esc(body)}</span>
         </div>
       `;
+    }
+
+    // Konum metniyle birlikte, varsa haritadaki gerçek koordinatları da
+    // gösterir ve paylaşılabilir hâle getirir (kopyala + haritada aç).
+    function locationSection(row) {
+      const locationText = value(row, fields.location);
+      if (!locationText) return "";
+      const points = pointsFor(row).filter((point) => Number.isFinite(point.lat) && Number.isFinite(point.lng));
+      const coordRows = points.map((point) => {
+        const coordText = `${point.lat.toFixed(5)}, ${point.lng.toFixed(5)}`;
+        const mapsUrl = `https://www.google.com/maps?q=${point.lat},${point.lng}`;
+        return `
+          <div class="coord-row">
+            <span class="coord-label">${esc(point.label || locationText)}</span>
+            <span class="coord-value">${esc(coordText)}</span>
+            <button class="inline-action" type="button" data-copy-coord="${esc(coordText)}">Koordinatı kopyala</button>
+            <a class="inline-action" href="${esc(mapsUrl)}" target="_blank" rel="noopener">Haritada aç</a>
+          </div>
+        `;
+      }).join("");
+      return `
+        <div class="claim">
+          <b>Nerede</b>
+          <span>${esc(locationText)}</span>
+          ${coordRows ? `<div class="coord-list">${coordRows}</div>` : ""}
+        </div>
+      `;
+    }
+
+    function wireCoordActions(root) {
+      if (!root) return;
+      root.querySelectorAll("[data-copy-coord]").forEach((button) => {
+        button.addEventListener("click", async () => {
+          const text = button.dataset.copyCoord;
+          const original = button.textContent;
+          try {
+            await navigator.clipboard.writeText(text);
+            button.textContent = "Kopyalandı";
+          } catch {
+            button.textContent = "Kopyalanamadı";
+          }
+          window.setTimeout(() => { button.textContent = original; }, 1400);
+        });
+      });
     }
 
     function selectedCase() {
@@ -4269,7 +4348,6 @@
       els.caseMeta.innerHTML = `
         <span class="tag">${esc(value(row, fields.area))}</span>
         <span class="tag">${esc(value(row, fields.status))}</span>
-        <span class="tag">${esc(row.verification.label)}</span>
         ${favoriteIds.has(row.id) ? '<span class="tag">Favori</span>' : ""}
         ${row.isDiscovered ? '<span class="tag">Canlı keşif</span>' : ""}
         <span class="tag">${row.pointCount ? `${row.pointCount} harita noktası` : "haritasız kayıt"}</span>
@@ -4278,12 +4356,10 @@
       els.favoriteCase.classList.toggle("is-active", favoriteIds.has(row.id));
       els.detail.innerHTML = renderTab(row);
       wireMediaGallery(els.detail);
+      wireCoordActions(els.detail);
       if (activeTab === "media") {
-        wireMediaControls(row);
-        hydrateLive(row);
-        ensureMediaRefresh(row);
+        hydrateSocialMedia(row);
       } else {
-        stopMediaRefresh();
         if (activeTab === "summary" && els.detailPanel.classList.contains("open")) hydrateSummaryNews(row);
       }
     }
@@ -4614,7 +4690,7 @@
               <strong>${esc(value(row, fields.area) || "Belirsiz")}</strong>
             </div>
           </div>
-          ${claim("Nerede", value(row, fields.location))}
+          ${locationSection(row)}
           ${claim("Talep / neden", value(row, fields.reason))}
           ${claim("Son gelişme", value(row, fields.latest))}
           <section class="summary-news-card" aria-label="Bu direnişe ait son haberler">
@@ -4631,19 +4707,82 @@
     function renderMediaTab(row) {
       return `
         <div class="live-grid media-flow">
-          <section id="mediaBanner" class="media-banner">
-            <div class="loading">Galeri yükleniyor...</div>
-          </section>
-          <section class="live-section">
-            <h3>Haberler</h3>
-            <div id="liveNews" class="live-results"><div class="loading">Haberler yükleniyor...</div></div>
-          </section>
-          <section class="live-section">
-            <h3>Görseller</h3>
-            <div id="livePhotos" class="media-slide-zone"><div class="loading">Görseller yükleniyor...</div></div>
+          <section class="live-section" aria-label="Umut-Sen paylaşımları">
+            <h3>Umut-Sen Paylaşımları</h3>
+            <div id="socialEmbedX" class="social-embed"><div class="loading">Umut-Sen paylaşımları yükleniyor...</div></div>
+            <div class="live-actions">
+              <a class="live-link" id="socialXFallback" href="https://x.com/umutsendikasi_" target="_blank" rel="noopener" hidden>X'te ara</a>
+              <a class="live-link" href="https://www.instagram.com/umut_sendikasi" target="_blank" rel="noopener">Instagram'da Umut-Sen</a>
+            </div>
           </section>
         </div>
       `;
+    }
+
+    // Bu direnişe özgü arama terimi: @umutsendikasi_ hesabından bu başlık/
+    // konuyla ilgili paylaşımları arar.
+    function umutSenSearchQuery(row) {
+      const title = searchQueryText(value(row, fields.title).replace(/\s*\/\s*/g, " "));
+      const place = searchQueryText(value(row, fields.location)
+        .replace(/Türkiye geneli.*/i, "")
+        .replace(/hattı|ve çevresi|ve ilçeleri|mağaza önleri/gi, "")
+        .trim());
+      return [title, place].filter(Boolean).join(" ");
+    }
+
+    let twitterWidgetsPromise = null;
+    function loadTwitterWidgets() {
+      if (window.twttr && window.twttr.widgets) return Promise.resolve(window.twttr);
+      if (twitterWidgetsPromise) return twitterWidgetsPromise;
+      twitterWidgetsPromise = new Promise((resolve) => {
+        const script = document.createElement("script");
+        script.src = "https://platform.twitter.com/widgets.js";
+        script.async = true;
+        script.onload = () => resolve(window.twttr || null);
+        script.onerror = () => resolve(null);
+        document.head.appendChild(script);
+      });
+      return twitterWidgetsPromise;
+    }
+
+    // Umut-Sen'in X paylaşımlarını bu direnişle ilgili arama sorgusuyla gömer.
+    // X'in ücretsiz gömme servisi zaman zaman rate-limit'e takılabildiği için,
+    // birkaç saniye içinde gerçek içerik oluşmazsa otomatik olarak "X'te ara"
+    // bağlantısına düşer — kullanıcı asla boş/bozuk bir kutuyla baş başa kalmaz.
+    async function hydrateSocialMedia(row) {
+      const container = document.getElementById("socialEmbedX");
+      const fallback = document.getElementById("socialXFallback");
+      if (!container) return;
+      const token = ++liveRequestToken;
+      const query = umutSenSearchQuery(row);
+      const searchUrl = `https://twitter.com/search?q=${encodeURIComponent(`from:umutsendikasi_ ${query}`.trim())}`;
+      if (fallback) fallback.href = searchUrl;
+      container.innerHTML = '<div class="loading">Umut-Sen paylaşımları yükleniyor...</div>';
+      const twttr = await loadTwitterWidgets();
+      if (token !== liveRequestToken) return;
+      if (!twttr) {
+        container.innerHTML = "";
+        if (fallback) fallback.hidden = false;
+        return;
+      }
+      container.innerHTML = "";
+      const anchor = document.createElement("a");
+      anchor.className = "twitter-timeline";
+      anchor.setAttribute("data-widget-type", "search");
+      anchor.setAttribute("data-height", "420");
+      anchor.href = searchUrl;
+      anchor.textContent = "Umut-Sen paylaşımları";
+      container.appendChild(anchor);
+      twttr.widgets.load(container);
+      window.setTimeout(() => {
+        if (token !== liveRequestToken) return;
+        const iframe = container.querySelector("iframe");
+        const rendered = iframe && iframe.getBoundingClientRect().height > 40;
+        if (!rendered) {
+          container.innerHTML = '<div class="empty">Umut-Sen paylaşımları şu an yüklenemedi.</div>';
+          if (fallback) fallback.hidden = false;
+        }
+      }, 4500);
     }
 
     function mediaFiltersFor(row) {
@@ -6512,7 +6651,7 @@
         // Çevrimiçi tabloya ulaşılamadı; yerel kayıtlar korunur.
       }
       const row = selectedCase();
-      if (row && activeTab === "media") hydrateLive(row);
+      if (row && activeTab === "media") hydrateSocialMedia(row);
       scheduleMediaWarmup(filteredCases(), { delay: 120, force: true });
     }
 
@@ -6543,7 +6682,7 @@
     });
     els.statFilters.forEach((button) => {
       button.addEventListener("click", () => setSmartFilter(
-        activeSmartFilter === button.dataset.statFilter ? "all" : button.dataset.statFilter
+        activeSmartFilter === button.dataset.statFilter ? "active" : button.dataset.statFilter
       ));
     });
     els.favoriteCase.addEventListener("click", toggleSelectedFavorite);
