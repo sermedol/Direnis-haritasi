@@ -1,10 +1,7 @@
 # Sınıf Atlası
 
 İşçi direnişleri, grevler, adalet mücadeleleri, ekoloji nöbetleri ve sınıf mücadelesinin
-güncel haritası. Umut-Sen için hazırlanan, tek dosyalık (statik) bir web uygulamasıdır;
-harita üzerinden mücadeleleri listeler, her kayıt için özet/bilgi/medya sekmelerinde
-canlı haber ve görsel taraması yapar.
-
+güncel haritası.
 ## Dosyalar
 
 - `index.html` — Yayına alınacak asıl dosya. GitHub Pages ve çoğu statik barındırma
