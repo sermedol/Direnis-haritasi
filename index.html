@@ -613,7 +613,7 @@
       bottom: 14px;
       z-index: 650;
       display: grid;
-      grid-template-columns: repeat(2, 1fr);
+      grid-template-columns: 1fr;
       gap: 8px;
       pointer-events: none;
     }
@@ -1901,7 +1901,7 @@
       }
 
       .map-summary {
-        grid-template-columns: repeat(2, 1fr);
+        grid-template-columns: 1fr;
       }
 
       .right {
@@ -2808,7 +2808,7 @@
       }
 
       .map-summary {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
+        grid-template-columns: 1fr;
       }
 
       .right {
@@ -3368,7 +3368,6 @@
         </div>
         <div class="map-summary">
           <button class="mini-stat" type="button" data-stat-filter="active"><span>Aktif direnişler</span><strong id="activeCount">0</strong></button>
-          <button class="mini-stat" type="button" data-stat-filter="needs_verification"><span>Teyit bekleyen</span><strong id="needsVerify">0</strong></button>
         </div>
       </section>
 
@@ -3613,7 +3612,6 @@
       detailPanel: document.getElementById("detailPanel"),
       visibleCount: document.getElementById("visibleCount"),
       activeCount: document.getElementById("activeCount"),
-      needsVerify: document.getElementById("needsVerify"),
       caseTitle: document.getElementById("caseTitle"),
       caseId: document.getElementById("caseId"),
       caseMeta: document.getElementById("caseMeta"),
@@ -4112,10 +4110,8 @@
 
     function smartFilterMatches(row) {
       if (activeSmartFilter === "active") return row.statusKind === "active";
-      if (activeSmartFilter === "won") return row.statusKind === "won";
       if (activeSmartFilter === "favorites") return favoriteIds.has(row.id);
       if (activeSmartFilter === "discovered") return row.isDiscovered;
-      if (activeSmartFilter === "needs_verification") return row.statusKind === "needs_verification" || row.verification.key !== "single";
       if (activeSmartFilter === "world") return row.scopeKind === "world";
       if (activeSmartFilter === "turkey") return row.scopeKind === "turkey";
       return true;
@@ -4227,7 +4223,6 @@
       const allRows = cases;
       els.visibleCount.textContent = `${rows.length} kayıt`;
       els.activeCount.textContent = allRows.filter((row) => row.statusKind === "active").length;
-      els.needsVerify.textContent = allRows.filter((row) => row.verification.key !== "single").length;
       syncSmartFilters();
     }
 
