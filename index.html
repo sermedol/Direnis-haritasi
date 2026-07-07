@@ -612,22 +612,23 @@
       right: 14px;
       bottom: 14px;
       z-index: 650;
-      display: grid;
-      grid-template-columns: 1fr;
+      display: flex;
+      justify-content: center;
       gap: 8px;
       pointer-events: none;
     }
 
     .mini-stat {
       display: grid;
-      padding: 10px;
+      justify-items: center;
+      padding: 10px 22px;
       color: inherit;
-      text-align: left;
+      text-align: center;
       background: rgba(255, 255, 255, 0.94);
       border: 1px solid var(--line);
-      border-radius: 8px;
+      border-radius: 999px;
       box-shadow: 0 8px 18px rgba(20, 20, 20, 0.08);
-      min-width: 0;
+      min-width: 200px;
       cursor: pointer;
       pointer-events: auto;
       transition: transform 0.16s ease, border-color 0.16s ease, box-shadow 0.16s ease;
@@ -1900,10 +1901,6 @@
         grid-row: 1;
       }
 
-      .map-summary {
-        grid-template-columns: 1fr;
-      }
-
       .right {
         width: min(440px, 96vw);
       }
@@ -2465,8 +2462,8 @@
 
     .mini-stat {
       min-height: 74px;
-      padding: 13px 14px;
-      border-radius: 18px;
+      padding: 13px 26px;
+      border-radius: 999px;
       background: var(--glass-strong);
       border-color: rgba(148, 163, 184, 0.28);
       backdrop-filter: blur(18px);
@@ -2807,10 +2804,6 @@
         min-height: 420px;
       }
 
-      .map-summary {
-        grid-template-columns: 1fr;
-      }
-
       .right {
         top: 12px;
         right: 12px;
@@ -2922,7 +2915,7 @@
     .case-card { padding: 15px 15px 14px 18px; }
     .case-card h2 { margin-top: 1px; }
     .tag-row { margin-top: 1px; }
-    .mini-stat { padding: 13px 15px; }
+    .mini-stat { padding: 13px 26px; }
     .mini-stat strong { margin-top: 6px; }
     .module-title { align-items: baseline; }
     .detail { padding: 17px; }
