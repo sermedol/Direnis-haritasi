@@ -1193,12 +1193,6 @@
       text-transform: uppercase;
     }
 
-    .social-embed {
-      min-height: 80px;
-      border-radius: 8px;
-      overflow: hidden;
-    }
-
     .press-link-list {
       display: flex;
       gap: 10px;
@@ -1279,11 +1273,6 @@
       line-height: 1.32;
       color: #fff;
       text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
-    }
-
-    .social-embed .twitter-timeline {
-      display: block;
-      width: 100%;
     }
 
     .media-banner,
@@ -4435,9 +4424,8 @@
       els.detail.innerHTML = renderTab(row);
       wireMediaGallery(els.detail);
       if (activeTab === "media") {
-        hydrateSocialMedia(row);
         hydratePressLinkImages(row);
-        hydrateFacebookPosts(row);
+        hydrateSocialPosts(row);
       } else {
         stopPressAutoplay();
         if (activeTab === "summary" && els.detailPanel.classList.contains("open")) hydrateSummaryNews(row);
@@ -4997,10 +4985,23 @@
       return hits.length === titleTerms.length;
     }
 
-    async function hydrateFacebookPosts(row) {
-      const section = document.getElementById("facebookSection");
-      const list = document.getElementById("fbPostList");
-      if (!section || !list) return;
+    // Bu direnişe özgü arama terimi: @umutsendikasi_ hesabından bu başlık/
+    // konuyla ilgili paylaşımları arar (X'te ara linkinin sorgusu için).
+    function umutSenSearchQuery(row) {
+      const title = searchQueryText(value(row, fields.title).replace(/\s*\/\s*/g, " "));
+      const place = searchQueryText(value(row, fields.location)
+        .replace(/Türkiye geneli.*/i, "")
+        .replace(/hattı|ve çevresi|ve ilçeleri|mağaza önleri/gi, "")
+        .trim());
+      return [title, place].filter(Boolean).join(" ");
+    }
+
+    // Umut-Sen'in Facebook (ve eklendikçe Instagram/X) paylaşımlarından bu
+    // direnişle GERÇEKTEN ilişkili olanları tek bir ızgarada birleştirir.
+    async function hydrateSocialPosts(row) {
+      const section = document.getElementById("socialSection");
+      const grid = document.getElementById("socialPostGrid");
+      if (!section || !grid) return;
       const feed = await fetchFacebookFeed();
       if (selectedCase()?.id !== row.id) return;
       const matches = feed.filter((post) => facebookPostMatchesRow(post, row)).slice(0, 8);
@@ -5008,7 +5009,7 @@
         section.hidden = true;
         return;
       }
-      list.innerHTML = matches.map((post) => {
+      grid.innerHTML = matches.map((post) => {
         const label = stripHtml(post.message || "").replace(/\s+/g, " ").trim();
         const shortLabel = label.length > 140 ? label.slice(0, 140).trim() + "…" : label;
         return `
@@ -5022,89 +5023,21 @@
     }
 
     function renderMediaTab(row) {
+      const query = umutSenSearchQuery(row);
+      const xSearchUrl = `https://twitter.com/search?q=${encodeURIComponent(`from:umutsendikasi_ ${query}`.trim())}`;
       return `
         <div class="live-grid media-flow">
           ${pressLinksSection(row)}
-          <section class="live-section" id="facebookSection" aria-label="Umut-Sen Facebook paylaşımları" hidden>
-            <h3>Umut-Sen Facebook'ta</h3>
-            <div class="press-grid" id="fbPostList"></div>
-          </section>
-          <section class="live-section" aria-label="Umut-Sen paylaşımları">
+          <section class="live-section" id="socialSection" aria-label="Umut-Sen paylaşımları" hidden>
             <h3>Umut-Sen Paylaşımları</h3>
-            <div id="socialEmbedX" class="social-embed"><div class="loading">Umut-Sen paylaşımları yükleniyor...</div></div>
-            <div class="live-actions">
-              <a class="live-link" id="socialXFallback" href="https://x.com/umutsendikasi_" target="_blank" rel="noopener" hidden>Umut-Sen'de ara</a>
-              <a class="live-link" href="https://www.instagram.com/umut_sendikasi" target="_blank" rel="noopener">Instagram'da Umut-Sen</a>
-            </div>
+            <div class="press-grid" id="socialPostGrid"></div>
           </section>
+          <div class="live-actions">
+            <a class="live-link" href="${esc(xSearchUrl)}" target="_blank" rel="noopener">X'te ara</a>
+            <a class="live-link" href="https://www.instagram.com/umut_sendikasi" target="_blank" rel="noopener">Instagram'da Umut-Sen</a>
+          </div>
         </div>
       `;
-    }
-
-    // Bu direnişe özgü arama terimi: @umutsendikasi_ hesabından bu başlık/
-    // konuyla ilgili paylaşımları arar.
-    function umutSenSearchQuery(row) {
-      const title = searchQueryText(value(row, fields.title).replace(/\s*\/\s*/g, " "));
-      const place = searchQueryText(value(row, fields.location)
-        .replace(/Türkiye geneli.*/i, "")
-        .replace(/hattı|ve çevresi|ve ilçeleri|mağaza önleri/gi, "")
-        .trim());
-      return [title, place].filter(Boolean).join(" ");
-    }
-
-    let twitterWidgetsPromise = null;
-    function loadTwitterWidgets() {
-      if (window.twttr && window.twttr.widgets) return Promise.resolve(window.twttr);
-      if (twitterWidgetsPromise) return twitterWidgetsPromise;
-      twitterWidgetsPromise = new Promise((resolve) => {
-        const script = document.createElement("script");
-        script.src = "https://platform.twitter.com/widgets.js";
-        script.async = true;
-        script.onload = () => resolve(window.twttr || null);
-        script.onerror = () => resolve(null);
-        document.head.appendChild(script);
-      });
-      return twitterWidgetsPromise;
-    }
-
-    // Umut-Sen'in X paylaşımlarını bu direnişle ilgili arama sorgusuyla gömer.
-    // X'in ücretsiz gömme servisi zaman zaman rate-limit'e takılabildiği için,
-    // birkaç saniye içinde gerçek içerik oluşmazsa otomatik olarak "X'te ara"
-    // bağlantısına düşer — kullanıcı asla boş/bozuk bir kutuyla baş başa kalmaz.
-    async function hydrateSocialMedia(row) {
-      const container = document.getElementById("socialEmbedX");
-      const fallback = document.getElementById("socialXFallback");
-      if (!container) return;
-      const token = ++liveRequestToken;
-      const query = umutSenSearchQuery(row);
-      const searchUrl = `https://twitter.com/search?q=${encodeURIComponent(`from:umutsendikasi_ ${query}`.trim())}`;
-      if (fallback) fallback.href = searchUrl;
-      container.innerHTML = '<div class="loading">Umut-Sen paylaşımları yükleniyor...</div>';
-      const twttr = await loadTwitterWidgets();
-      if (token !== liveRequestToken) return;
-      if (!twttr) {
-        container.innerHTML = "";
-        if (fallback) fallback.hidden = false;
-        return;
-      }
-      container.innerHTML = "";
-      const anchor = document.createElement("a");
-      anchor.className = "twitter-timeline";
-      anchor.setAttribute("data-widget-type", "search");
-      anchor.setAttribute("data-height", "420");
-      anchor.href = searchUrl;
-      anchor.textContent = "Umut-Sen paylaşımları";
-      container.appendChild(anchor);
-      twttr.widgets.load(container);
-      window.setTimeout(() => {
-        if (token !== liveRequestToken) return;
-        const iframe = container.querySelector("iframe");
-        const rendered = iframe && iframe.getBoundingClientRect().height > 40;
-        if (!rendered) {
-          container.innerHTML = "";
-          if (fallback) fallback.hidden = false;
-        }
-      }, 4500);
     }
 
     function mediaFiltersFor(row) {
@@ -6982,9 +6915,8 @@
       }
       const row = selectedCase();
       if (row && activeTab === "media") {
-        hydrateSocialMedia(row);
         hydratePressLinkImages(row);
-        hydrateFacebookPosts(row);
+        hydrateSocialPosts(row);
       }
       scheduleMediaWarmup(filteredCases(), { delay: 120, force: true });
     }
