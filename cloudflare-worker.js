@@ -77,35 +77,14 @@ function corsHeaders() {
   };
 }
 
-// Uzun ömürlü (long-lived) token, worker'ın çalıştığı süre boyunca bellekte
-// tutulur; her istekte Meta'ya yeniden değişim (exchange) isteği atılmaz.
-let cachedToken = null;
-let cachedTokenExpiry = 0;
-
-async function getLongLivedToken(env) {
-  const now = Date.now();
-  if (cachedToken && now < cachedTokenExpiry) return cachedToken;
-  if (!env.FB_APP_ID || !env.FB_APP_SECRET || !env.FB_PAGE_TOKEN) return env.FB_PAGE_TOKEN || null;
-  try {
-    const exchangeUrl = `https://graph.facebook.com/v21.0/oauth/access_token` +
-      `?grant_type=fb_exchange_token&client_id=${encodeURIComponent(env.FB_APP_ID)}` +
-      `&client_secret=${encodeURIComponent(env.FB_APP_SECRET)}` +
-      `&fb_exchange_token=${encodeURIComponent(env.FB_PAGE_TOKEN)}`;
-    const response = await fetch(exchangeUrl);
-    const data = await response.json();
-    if (data.access_token) {
-      cachedToken = data.access_token;
-      const ttlMs = data.expires_in ? Math.max(data.expires_in - 3600, 3600) * 1000 : 50 * 24 * 60 * 60 * 1000;
-      cachedTokenExpiry = now + ttlMs;
-      return cachedToken;
-    }
-  } catch {}
-  return env.FB_PAGE_TOKEN;
-}
-
+// NOT: Sayfa (Page) erişim jetonları, uzun ömürlü bir Kullanıcı jetonundan
+// türetildiyse zaten kendiliğinden süresiz/uzun ömürlü olur. Bu yüzden burada
+// EK bir "fb_exchange_token" değişimi YAPMIYORUZ — o mekanizma Kullanıcı
+// jetonları içindir ve bir Sayfa jetonuna uygulanırsa onu bozup tekrar bir
+// Kullanıcı jetonuna çevirebilir (yaşanan hatanın sebebi buydu).
 async function handleSocial(requestUrl, env) {
   const kind = requestUrl.searchParams.get("social");
-  const token = await getLongLivedToken(env);
+  const token = env.FB_PAGE_TOKEN || null;
   if (!token) {
     return new Response(JSON.stringify({ error: "Token yapılandırılmamış." }), {
       status: 500,
