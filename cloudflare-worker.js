@@ -114,8 +114,43 @@ async function getPageAccessToken(env, pageId) {
   return null;
 }
 
+// Geçici teşhis ucu — token'ın kendisini asla açığa çıkarmaz, sadece
+// değişim (exchange) adımının nerede başarısız olduğunu gösterir.
+async function handleDebug(env) {
+  const info = {
+    hasAppId: Boolean(env.FB_APP_ID),
+    hasAppSecret: Boolean(env.FB_APP_SECRET),
+    hasUserToken: Boolean(env.FB_USER_TOKEN)
+  };
+  if (!info.hasAppId || !info.hasAppSecret || !info.hasUserToken) {
+    return new Response(JSON.stringify({ ...info, step: "eksik secret var" }, null, 2), {
+      headers: { ...corsHeaders(), "Content-Type": "application/json" }
+    });
+  }
+  try {
+    const exchangeUrl = `https://graph.facebook.com/v21.0/oauth/access_token` +
+      `?grant_type=fb_exchange_token&client_id=${encodeURIComponent(env.FB_APP_ID)}` +
+      `&client_secret=${encodeURIComponent(env.FB_APP_SECRET)}` +
+      `&fb_exchange_token=${encodeURIComponent(env.FB_USER_TOKEN)}`;
+    const exchangeResponse = await fetch(exchangeUrl);
+    const exchangeData = await exchangeResponse.json();
+    info.exchangeSucceeded = Boolean(exchangeData.access_token);
+    info.exchangeExpiresIn = exchangeData.expires_in || null;
+    info.exchangeError = exchangeData.error || null;
+    return new Response(JSON.stringify(info, null, 2), {
+      headers: { ...corsHeaders(), "Content-Type": "application/json" }
+    });
+  } catch (error) {
+    info.exchangeThrew = error.message;
+    return new Response(JSON.stringify(info, null, 2), {
+      headers: { ...corsHeaders(), "Content-Type": "application/json" }
+    });
+  }
+}
+
 async function handleSocial(requestUrl, env) {
   const kind = requestUrl.searchParams.get("social");
+  if (kind === "debug") return handleDebug(env);
   const pageId = requestUrl.searchParams.get("pageId") || requestUrl.searchParams.get("igId");
   const token = pageId ? await getPageAccessToken(env, pageId) : null;
   if (!token) {
