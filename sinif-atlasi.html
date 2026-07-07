@@ -613,7 +613,7 @@
       bottom: 14px;
       z-index: 650;
       display: grid;
-      grid-template-columns: repeat(4, 1fr);
+      grid-template-columns: repeat(3, 1fr);
       gap: 8px;
       pointer-events: none;
     }
@@ -1890,7 +1890,7 @@
       }
 
       .map-summary {
-        grid-template-columns: repeat(2, 1fr);
+        grid-template-columns: repeat(3, 1fr);
       }
 
       .right {
@@ -2770,7 +2770,7 @@
       }
 
       .map-summary {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
+        grid-template-columns: repeat(3, minmax(0, 1fr));
       }
 
       .right {
@@ -3334,7 +3334,6 @@
           <button class="mini-stat" type="button" data-stat-filter="active"><span>Aktif mücadeleler</span><strong id="activeCount">0</strong></button>
           <button class="mini-stat" type="button" data-stat-filter="won"><span>Kazanımla sonuçlanan</span><strong id="winCount">0</strong></button>
           <button class="mini-stat" type="button" data-stat-filter="needs_verification"><span>Teyit bekleyen</span><strong id="needsVerify">0</strong></button>
-          <button class="mini-stat" type="button" data-stat-filter="world"><span>Dünya kayıtları</span><strong id="sourceShort">0</strong></button>
         </div>
       </section>
 
@@ -3577,7 +3576,6 @@
       caseList: document.getElementById("caseList"),
       detail: document.getElementById("detail"),
       detailPanel: document.getElementById("detailPanel"),
-      sourceShort: document.getElementById("sourceShort"),
       visibleCount: document.getElementById("visibleCount"),
       activeCount: document.getElementById("activeCount"),
       winCount: document.getElementById("winCount"),
@@ -4195,7 +4193,6 @@
       els.activeCount.textContent = allRows.filter((row) => row.statusKind === "active").length;
       els.winCount.textContent = allRows.filter((row) => row.statusKind === "won").length;
       els.needsVerify.textContent = allRows.filter((row) => row.verification.key !== "single").length;
-      els.sourceShort.textContent = allRows.filter((row) => row.scopeKind === "world").length;
       syncSmartFilters();
     }
 
