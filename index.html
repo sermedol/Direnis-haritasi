@@ -4877,6 +4877,71 @@
       return `https://news.google.com/rss/search?q=${encodeURIComponent(query)}&hl=${encodeURIComponent(locale.hl)}&gl=${encodeURIComponent(locale.gl)}&ceid=${encodeURIComponent(locale.ceid)}`;
     }
 
+    // --- Kendi Cloudflare Worker proxy'miz + Bing Haberler ---
+    // Ücretsiz paylaşılan proxy'ler ve Google Haberler/DuckDuckGo sık sık
+    // bizim (ya da diğer kullanıcıların) isteklerini engelliyordu. Kendi
+    // worker'ımız üzerinden Bing Haberler RSS'i çekmek çok daha güvenilir
+    // sonuç veriyor ve makalenin GERÇEK adresini doğrudan veriyor (Google'ın
+    // çözülemeyen yönlendirme linklerinin aksine), bu da görsel taramasını
+    // da hızlandırıyor.
+    const OWN_PROXY_BASE = "https://sinif-atlasi.feyzakayaalti.workers.dev/?url=";
+    function ownProxyUrl(url) {
+      return OWN_PROXY_BASE + encodeURIComponent(url);
+    }
+
+    function bingNewsRssUrl(query) {
+      return `https://www.bing.com/news/search?q=${encodeURIComponent(query)}&format=rss`;
+    }
+
+    // Bing'in RSS linki "bing.com/news/apiclick.aspx?...&url=GERÇEK_ADRES&..."
+    // biçiminde bir yönlendirmedir; GERÇEK_ADRES doğrudan çözülebilir.
+    function decodeBingLink(url) {
+      try {
+        const parsed = new URL(url);
+        const real = parsed.searchParams.get("url");
+        return real ? decodeURIComponent(real) : url;
+      } catch {
+        return url;
+      }
+    }
+
+    function parseBingRssItems(xmlText, locale) {
+      const xml = new DOMParser().parseFromString(xmlText, "text/xml");
+      return Array.from(xml.querySelectorAll("item")).map((item) => {
+        const cleaned = cleanNewsTitle(item.querySelector("title")?.textContent || "");
+        const pubDate = item.querySelector("pubDate")?.textContent || "";
+        const rawLink = item.querySelector("link")?.textContent || "";
+        const link = decodeBingLink(rawLink);
+        const source = item.getElementsByTagName("News:Source")[0]?.textContent
+          || articleHost(link) || cleaned.source || "Bing Haberler";
+        const image = item.getElementsByTagName("News:Image")[0]?.textContent || "";
+        return {
+          title: cleaned.title,
+          link,
+          date: formatDate(pubDate),
+          timestamp: Date.parse(pubDate) || 0,
+          summary: stripHtml(item.querySelector("description")?.textContent || "").replace(/\s+/g, " ").slice(0, 220),
+          source,
+          sourceName: source,
+          locale: locale.label,
+          mediaType: "news",
+          image,
+          sourceUrl: rawLink
+        };
+      }).filter((item) => item.title && item.link && isUsableArticleUrl(item.link));
+    }
+
+    async function fetchBingNews(query, locale, { background = false } = {}) {
+      try {
+        const response = await fetchWithTimeout(ownProxyUrl(bingNewsRssUrl(query)), {}, background ? 5500 : 8000, { background });
+        if (!response.ok) return [];
+        const text = await response.text();
+        return parseBingRssItems(text, locale);
+      } catch {
+        return [];
+      }
+    }
+
     function parseGoogleNewsItems(items, locale) {
       return (items || []).map((item) => {
         const cleaned = cleanNewsTitle(item.title || "");
@@ -4934,9 +4999,10 @@
 
     // Tek bir proxy adayını dener; geçerli haber listesi dönerse onu verir.
     async function tryNewsProxy(proxyUrl, rssUrl, locale, { background = false } = {}) {
-      // Arka planda (toplu Canlı Tarama) ölü/yavaş bir proxy'ye uzun süre takılıp
-      // kalmayalım diye zaman aşımı kısaltılır — sıradaki dalga daha çabuk devreye girer.
-      const response = await fetchWithTimeout(proxyUrl, {}, background ? 3500 : 6000, { background });
+      // Bing Haberler (kendi worker'ımız üzerinden) artık ana ve güvenilir
+      // kaynak olduğu için, bu paylaşılan/sık tıkanan yedek proxy zincirini
+      // ön planda bile uzun süre beklemeye gerek yok — kısa sürede vazgeçilir.
+      const response = await fetchWithTimeout(proxyUrl, {}, background ? 3500 : 3000, { background });
       if (!response.ok) throw new Error("http");
       // rss2json JSON, diğerleri XML/JSON sarmalı olabilir.
       if (proxyUrl.includes("rss2json.com")) {
@@ -5392,12 +5458,17 @@
         capturedAt: item.capturedAt || new Date().toISOString()
       }));
       const profiles = alertProfilesFor(row).filter((profile) => profile.enabled && profile.status === "active");
-      const [rssResults, searchResults] = await Promise.all([
+      const locale = localeForCode(row.scopeKind === "world" ? "en" : "tr");
+      const bingQueries = newsQueriesFor(row).slice(0, 2);
+      const [rssResults, searchResults, bingResults] = await Promise.all([
         Promise.allSettled(profiles.map((profile) => fetchAlertFeed(profile, { background }))),
-        fetchSearchCandidateFeed(row, { background }).catch(() => [])
+        fetchSearchCandidateFeed(row, { background }).catch(() => []),
+        Promise.allSettled(bingQueries.map((query) => fetchBingNews(query, locale, { background })))
+          .then((results) => results.flatMap((result) => result.status === "fulfilled" ? result.value : []))
       ]);
       const candidates = [
         ...seeded,
+        ...bingResults,
         ...rssResults.flatMap((result) => result.status === "fulfilled" ? result.value : []),
         ...searchResults
       ];
@@ -5469,6 +5540,10 @@
           // ownLabel: yalnızca görselin KENDİ alt metni varsa doludur — haber
           // başlığı/kaynağı buraya asla sızmaz (bkz. imageOwnTextBundle).
           ownLabel: item.imageAlt || item.imageTitle || "",
+          // RSS kaynağı (Bing Haberler vb.) görseli haberin kendi alanı olarak
+          // açıkça belirttiyse (enclosure/News:Image), og:image ile aynı
+          // güven seviyesindedir.
+          fromMeta: true,
           sourceNews: item,
           mediaType: "photo",
           reliability: item.reliability || "single_source"
@@ -5485,6 +5560,23 @@
 
     function jinaReaderUrl(url) {
       return `https://r.jina.ai/${url}`;
+    }
+
+    // Makale sayfasını önce kendi worker'ımızdan (ham HTML, hızlı ve güvenilir),
+    // o başarısız olursa r.jina.ai'den (markdown) çekmeyi dener.
+    async function fetchArticlePage(url, { background = false } = {}) {
+      try {
+        const response = await fetchWithTimeout(ownProxyUrl(url), {}, background ? 5000 : 8000, { background });
+        if (response.ok) {
+          const text = await response.text();
+          if (text && text.length > 200) return text;
+        }
+      } catch {}
+      try {
+        const response = await fetchWithTimeout(jinaReaderUrl(url), {}, background ? 5500 : 4000, { background });
+        if (response.ok) return await response.text();
+      } catch {}
+      return "";
     }
 
     function decodeResultUrl(url) {
@@ -5540,7 +5632,7 @@
       if (!query) return direct;
       try {
         const searchUrl = `https://duckduckgo.com/html/?q=${encodeURIComponent(query)}`;
-        const response = await fetchWithTimeout(jinaReaderUrl(searchUrl), {}, background ? 5500 : 8500, { background });
+        const response = await fetchWithTimeout(jinaReaderUrl(searchUrl), {}, background ? 5500 : 4000, { background });
         if (!response.ok) return direct;
         const markdown = await response.text();
         const found = searchResultCandidates(markdown)
@@ -5661,7 +5753,7 @@
       ];
       metaPatterns.forEach((pattern) => {
         Array.from(String(markdown || "").matchAll(pattern)).forEach((match) => {
-          const imageUrl = (match[1] || "").replace(/\\//g, "/").replace(/&amp;/g, "&");
+          const imageUrl = (match[1] || "").replace(/\\\//g, "/").replace(/&amp;/g, "&");
           // Bu görsel sayfanın og:image/twitter:image/JSON-LD "image" etiketinden
           // geldi — site bunu "bu sayfanın görseli budur" diye kendisi işaretledi,
           // bu yüzden güvenilirliği sayfadaki rastgele bir <img>'den yüksektir.
@@ -5712,9 +5804,9 @@
       const tasks = selectedNews.map(async (item) => {
         const candidates = await fetchArticleCandidates(row, item, { background });
         const articleResults = await Promise.allSettled(candidates.map(async (candidate) => {
-          const response = await fetchWithTimeout(jinaReaderUrl(candidate.url), {}, background ? 5500 : 9500, { background });
-          if (!response.ok) return [];
-          return imagesFromArticleMarkdown(await response.text(), row, item, candidate.url);
+          const markdown = await fetchArticlePage(candidate.url, { background });
+          if (!markdown) return [];
+          return imagesFromArticleMarkdown(markdown, row, item, candidate.url);
         }));
         return articleResults.flatMap((result) => result.status === "fulfilled" ? result.value : []);
       });
@@ -6073,6 +6165,10 @@
           reliability: item.reliability || "single_source"
         })).filter((item, index, list) => (
           list.findIndex((candidate) => (candidate.thumb || candidate.url) === (item.thumb || item.url)) === index
+        )).filter((item, index, list) => (
+          // Aynı görsel farklı ufak URL varyantlarıyla (kırpma/boyut parametresi)
+          // birden fazla kez gelebiliyor — başlık aynıysa yine de tekilleştir.
+          list.findIndex((candidate) => norm(candidate.displayTitle || candidate.title || "") === norm(item.displayTitle || item.title || "")) === index
         )).slice(0, 10);
         const bundle = {
           news: attachImagesToNews(row, sortNewsNewestFirst(news), mergedPhotos),

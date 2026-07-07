@@ -15,6 +15,8 @@ güncel haritası.
 - `data/direnis-listesi.tsv` — Mücadele kayıtlarının kaynak verisi.
 - `Sinif-Atlasi-Baslat.bat` — Windows'ta çift tıklayınca yerel bir Python HTTP sunucusu
   açıp uygulamayı tarayıcıda başlatan kısayol.
+- `cloudflare-worker.js` — Haber/görsel taramasının kullandığı, ücretsiz Cloudflare
+  Workers üzerinde barındırılan kendi proxy'mizin kaynak kodu.
 
 ## Yerel çalıştırma
 
