@@ -1,11 +1,11 @@
 @echo off
 chcp 65001 >nul
-title Sinif Atlasi - Yerel Sunucu
+title Direnis Haritasi - Yerel Sunucu
 cd /d "%~dp0"
 
 echo.
 echo ============================================================
-echo   SINIF ATLASI - Yerel Sunucu Baslatiliyor
+echo   DIRENIS HARITASI - Yerel Sunucu Baslatiliyor
 echo ============================================================
 echo.
 echo   Bu pencere ACIK kalmali. Kapatirsan harita/haber durur.
