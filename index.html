@@ -1871,8 +1871,8 @@
     .pin {
       position: relative;
       display: block;
-      width: 24px;
-      height: 24px;
+      width: 30px;
+      height: 30px;
       border: 3px solid #fff;
       border-radius: 99px 99px 99px 4px;
       box-shadow: 0 6px 16px rgba(20, 20, 20, 0.32);
@@ -1882,7 +1882,7 @@
     .pin::after {
       content: "";
       position: absolute;
-      inset: 6px;
+      inset: 10px;
       background: rgba(255, 255, 255, 0.9);
       border-radius: 99px;
     }
@@ -4549,20 +4549,36 @@
       if (!locationText) return "";
       const points = pointsFor(row).filter((point) => Number.isFinite(point.lat) && Number.isFinite(point.lng));
       const showLabels = points.length > 1;
-      const coordRows = points.map((point) => {
-        const mapsUrl = `https://www.google.com/maps?q=${point.lat},${point.lng}`;
-        return `
+      let coordRows;
+      if (points.length) {
+        coordRows = points.map((point) => {
+          const mapsUrl = `https://www.google.com/maps?q=${point.lat},${point.lng}`;
+          return `
+            <div class="coord-row">
+              ${showLabels ? `<span class="coord-label">${esc(point.label || locationText)}</span>` : ""}
+              <a class="inline-action" href="${esc(mapsUrl)}" target="_blank" rel="noopener">Haritada aç</a>
+            </div>
+          `;
+        }).join("");
+      } else {
+        // Kendi koordinat çözümümüz (Konum sütunu / geocode önbelleği) henüz
+        // bir sonuç vermemiş olsa bile, kullanıcı Konum'a bir adres yazdıysa
+        // "Haritada aç" linki Google Maps'in KENDİ arama/geocode motoruna
+        // yönlendirir — bu, adres metnini bizim pipeline'ımızdan daha
+        // güvenilir şekilde çözer, link asla kaybolmaz.
+        const addressText = konumTextFor(row) || locationText;
+        const searchUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(addressText)}`;
+        coordRows = `
           <div class="coord-row">
-            ${showLabels ? `<span class="coord-label">${esc(point.label || locationText)}</span>` : ""}
-            <a class="inline-action" href="${esc(mapsUrl)}" target="_blank" rel="noopener">Haritada aç</a>
+            <a class="inline-action" href="${esc(searchUrl)}" target="_blank" rel="noopener">Haritada aç</a>
           </div>
         `;
-      }).join("");
+      }
       return `
         <div class="claim">
           <b>Yer</b>
           <span>${esc(locationText)}</span>
-          ${coordRows ? `<div class="coord-list">${coordRows}</div>` : ""}
+          <div class="coord-list">${coordRows}</div>
         </div>
       `;
     }
