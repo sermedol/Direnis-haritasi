@@ -3391,9 +3391,6 @@
       <label class="global-search" aria-label="Tek arama">
         <input id="search" type="search" placeholder="Ara: Doruk Maden, Akbelen, Gebze, sendika, ekoloji..." autocomplete="off">
       </label>
-      <div class="top-actions">
-        <button id="themeToggle" class="control-button ghost" type="button">Karanlık</button>
-      </div>
     </header>
 
     <main class="workspace">
@@ -3649,7 +3646,7 @@
       area: "Alan",
       title: "Başlık",
       location: "Yer",
-      actors: "Özne",
+      actors: "Sendika/Dernek/Kurum",
       reason: "Neden/Talepler",
       startDate: "Başlangıç tarihi",
       time: "Zaman/Gün",
@@ -3674,7 +3671,6 @@
       focusTurkey: document.getElementById("focusTurkey"),
       togglePanel: document.getElementById("togglePanel"),
       closePanel: document.getElementById("closePanel"),
-      themeToggle: document.getElementById("themeToggle"),
       favoriteCase: document.getElementById("favoriteCase"),
       downloadCase: document.getElementById("downloadCase"),
       copyCaseLink: document.getElementById("copyCaseLink"),
@@ -3752,8 +3748,10 @@
         worldCopyJump: false,
         maxBounds: [[33, 20], [45, 48]],
         maxBoundsViscosity: 1,
-        minZoom: 5
+        minZoom: 5,
+        attributionControl: false
       }).setView([39, 35], 6);
+      L.control.attribution({ prefix: false }).addTo(map);
       addResilientTiles(map);
       markerLayer = (typeof L.markerClusterGroup === "function")
         ? L.markerClusterGroup({ showCoverageOnHover: false, maxClusterRadius: 44 })
@@ -3805,7 +3803,7 @@
       "Alan": ["Alan", "Kategori", "Başlık alanı", "Baslik alani"],
       "Başlık": ["Başlık", "Baslik", "Ne", "Direniş", "Direniş adı", "Direnis", "Direnis adi"],
       "Yer": ["Yer", "Nerede", "Lokasyon", "Şehir", "Sehir"],
-      "Özne": ["Özne", "Ozne", "Kim", "Aktörler", "Aktorler"],
+      "Sendika/Dernek/Kurum": ["Sendika/Dernek/Kurum", "Sendika/ Dernek/ Kurum", "Özne", "Ozne", "Kim", "Aktörler", "Aktorler", "Sendika"],
       "Neden/Talepler": ["Neden/Talepler", "Neden", "Talep", "Talepler", "Gerekçe", "Gerekce"],
       "Başlangıç tarihi": ["Başlangıç tarihi", "Baslangic tarihi", "Başlangıç", "Baslangic", "Tarih"],
       "Zaman/Gün": ["Zaman/Gün", "Zaman/Gun", "Ne zaman / kaçıncı gün", "Güncel zaman/gün", "Guncel zaman/gun", "Ne zaman", "Kaçıncı gün", "Kacinci gun", "Süre", "Sure"],
@@ -3993,7 +3991,6 @@
     function applyTheme(theme) {
       preferences.theme = theme === "dark" ? "dark" : "light";
       document.documentElement.dataset.theme = preferences.theme;
-      els.themeToggle.textContent = preferences.theme === "dark" ? "Aydınlık" : "Karanlık";
       savePreferences();
     }
 
@@ -4176,7 +4173,7 @@
             <span class="tag">${esc(value(entry.row, fields.status))}</span>
           </div>
           <p>${esc(entry.point.label || value(entry.row, fields.location))}</p>
-          <button type="button" data-open-case="${esc(entry.row.id)}">Kartı aç</button>
+          <button type="button" data-open-case="${esc(entry.row.id)}">Detaylar</button>
         </article>
       `;
     }
@@ -4758,7 +4755,7 @@
             </div>
           </div>
           ${locationSection(row)}
-          ${claim("Özne", value(row, fields.actors))}
+          ${claim("Sendika/Dernek/Kurum", value(row, fields.actors))}
           ${claim("Neden/Talepler", value(row, fields.reason))}
           ${claim("Başlangıç tarihi", value(row, fields.startDate))}
           ${claim("Zaman/Gün", value(row, fields.time))}
@@ -6679,7 +6676,7 @@
         <div class="detail-section">
           ${claim("Alan", value(row, fields.area))}
           ${claim("Yer", value(row, fields.location))}
-          ${claim("Özne", value(row, fields.actors))}
+          ${claim("Sendika/Dernek/Kurum", value(row, fields.actors))}
           ${claim("Neden/Talepler", value(row, fields.reason))}
           ${claim("Başlangıç tarihi", value(row, fields.startDate))}
           ${claim("Zaman/Gün", value(row, fields.time))}
@@ -6871,7 +6868,6 @@
       renderDetail();
     });
     els.closePanel.addEventListener("click", () => setPanelOpen(false));
-    els.themeToggle.addEventListener("click", () => applyTheme(preferences.theme === "dark" ? "light" : "dark"));
     els.smartFilters.forEach((button) => {
       button.addEventListener("click", () => setSmartFilter(
         activeSmartFilter === button.dataset.smartFilter ? "all" : button.dataset.smartFilter
@@ -6898,7 +6894,7 @@
       });
     });
 
-    applyTheme(preferences.theme);
+    applyTheme("light");
     applyDensity("comfortable");
     applyFocusMode(false);
     configureRefresh();
