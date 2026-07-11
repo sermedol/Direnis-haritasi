@@ -4124,19 +4124,58 @@
       return Boolean(entry.failedAt) && (Date.now() - entry.failedAt < GEOCODE_RETRY_MS);
     }
 
+    // Sayfadaki ham "Konum" metni genelde bina/kapı numarası ve posta kodu
+    // içeren tam bir açık adres ("Adres: Yenişehir, Millet Cd. No:38, 34912
+    // Pendik/İstanbul") — Nominatim bu kadar detaylı sokak adreslerini
+    // çoğu zaman bulamıyor. Bu yüzden giderek sadeleşen adaylar üretilir:
+    // önce tam metin, sonra bina no/posta kodu silinmiş hali, sonra
+    // "İlçe/İl" -> "İlçe, İl" düzeltmesi, en son sadece ilçe+il.
+    function geocodeCandidates(rawAddress) {
+      const text = rawAddress.trim().replace(/^[^:]{0,60}adres[^:]{0,40}:\s*/i, "");
+      const candidates = [text];
+
+      const noBuilding = text
+        .replace(/\bNo:?\s*\d+[a-zçğıöşü]?\b/gi, "")
+        .replace(/\b\d{5}\b/g, "")
+        .replace(/\s{2,}/g, " ")
+        .replace(/,\s*,/g, ",")
+        .replace(/^,\s*|,\s*$/g, "")
+        .trim();
+      if (noBuilding && noBuilding !== text) candidates.push(noBuilding);
+
+      const slashFixed = noBuilding
+        .replace(/([A-Za-zÇĞİIıÖŞÜçğıöşü]+)\/([A-Za-zÇĞİIıÖŞÜçğıöşü]+)\s*$/, "$1, $2")
+        .trim();
+      if (slashFixed && slashFixed !== noBuilding) candidates.push(slashFixed);
+
+      const parts = slashFixed.split(",").map((part) => part.trim()).filter(Boolean);
+      if (parts.length > 2) candidates.push(parts.slice(-2).join(", "));
+
+      return [...new Set(candidates)].filter((candidate) => candidate.length >= 4);
+    }
+
     async function geocodeAddress(address) {
       const key = norm(address);
       if (isUsableGeocodeEntry(geocodeCache[key])) return geocodeCache[key];
-      try {
-        const response = await fetchWithTimeout(
-          `https://sinif-atlasi.feyzakayaalti.workers.dev/?geocode=${encodeURIComponent(address)}`,
-          {}, 8000, { background: true }
-        );
-        const data = await response.json();
-        geocodeCache[key] = (data && data.result) || { failedAt: Date.now() };
-      } catch {
-        geocodeCache[key] = { failedAt: Date.now() };
+      const candidates = geocodeCandidates(address);
+      let result = null;
+      for (let i = 0; i < candidates.length; i++) {
+        try {
+          const response = await fetchWithTimeout(
+            `https://sinif-atlasi.feyzakayaalti.workers.dev/?geocode=${encodeURIComponent(candidates[i])}`,
+            {}, 8000, { background: true }
+          );
+          const data = await response.json();
+          if (data && data.result && isPlausibleCoord(data.result.lat, data.result.lng)) {
+            result = data.result;
+            break;
+          }
+        } catch {}
+        if (i < candidates.length - 1) {
+          await new Promise((resolve) => window.setTimeout(resolve, 400));
+        }
       }
+      geocodeCache[key] = result || { failedAt: Date.now() };
       saveGeocodeCache();
       return geocodeCache[key];
     }
