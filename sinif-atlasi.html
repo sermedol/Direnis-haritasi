@@ -3541,7 +3541,13 @@
     const PREF_KEY = "sinif-atlasi-tercihler";
     const HIDDEN_MEDIA_KEY = "sinif-atlasi-gizli-medya";
     const MEDIA_CACHE_KEY = "sinif-atlasi-medya-onbellek";
-    const GEOCODE_CACHE_KEY = "sinif-atlasi-adres-konum";
+    // Sürüm numarası: geocode/çözümleme mantığı köklü değişince (ör. Konum
+    // linklerinin ayrıştırılma şekli değiştiğinde) bunu artırın — eski
+    // "başarısız" önbellek kayıtları yeni mantıkla hâlâ geçerliymiş gibi
+    // 24 saat retry'ı bloke etmesin diye TÜM tarayıcılarda temiz başlangıç
+    // sağlar (başarılı sonuçlar zaten Cloudflare kenar önbelleğinde kalıcı
+    // olduğu için bu neredeyse anında yeniden dolar).
+    const GEOCODE_CACHE_KEY = "sinif-atlasi-adres-konum-v2";
     const MEDIA_CACHE_MAX_AGE_MS = 6 * 60 * 60 * 1000;
     const MEDIA_REFRESH_MS = 90000;
     const MEDIA_PREFETCH_LIMIT = 10;
