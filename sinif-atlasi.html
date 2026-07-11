@@ -3415,7 +3415,6 @@
         <div class="map-hud">
           <button id="fitFiltered" class="hud-button" type="button">Görüneni Sığdır</button>
           <button id="focusTurkey" class="hud-button" type="button">Türkiye</button>
-          <button id="togglePanel" class="hud-button" type="button">Detayı Aç</button>
         </div>
         <div class="map-summary">
           <button class="mini-stat" type="button" data-stat-filter="active"><span>Aktif direnişler</span><strong id="activeCount">0</strong></button>
@@ -3669,7 +3668,6 @@
       caseMeta: document.getElementById("caseMeta"),
       fitFiltered: document.getElementById("fitFiltered"),
       focusTurkey: document.getElementById("focusTurkey"),
-      togglePanel: document.getElementById("togglePanel"),
       closePanel: document.getElementById("closePanel"),
       favoriteCase: document.getElementById("favoriteCase"),
       downloadCase: document.getElementById("downloadCase"),
@@ -4372,7 +4370,6 @@
     function setPanelOpen(open) {
       els.detailPanel.classList.toggle("open", open);
       els.detailPanel.style.removeProperty("transform");
-      els.togglePanel.textContent = open ? "Detayı Kapat" : "Detayı Aç";
       if (!open) stopMediaRefresh();
     }
 
@@ -6861,12 +6858,6 @@
     [els.areaFilter, els.statusFilter].forEach((el) => el.addEventListener("change", render));
     els.fitFiltered.addEventListener("click", fitFiltered);
     els.focusTurkey.addEventListener("click", () => map.fitBounds([[35.7, 25.4], [42.2, 45.0]]));
-    els.togglePanel.addEventListener("click", () => {
-      const shouldOpen = !els.detailPanel.classList.contains("open");
-      if (shouldOpen && !selectedId && cases.length) selectedId = cases[0].id;
-      setPanelOpen(shouldOpen);
-      renderDetail();
-    });
     els.closePanel.addEventListener("click", () => setPanelOpen(false));
     els.smartFilters.forEach((button) => {
       button.addEventListener("click", () => setSmartFilter(
