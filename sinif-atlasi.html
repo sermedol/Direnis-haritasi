@@ -5562,13 +5562,7 @@
             ${durationSnapshot(row)}
           </div>
           ${locationSection(row)}
-          ${claim("Sendika/Dernek/Kurum", value(row, fields.actors))}
-          ${claim("İşkolu", value(row, fields.sector))}
           ${claim("Neden/Talepler", value(row, fields.reason))}
-          ${claim("Başlangıç tarihi", value(row, fields.startDate))}
-          ${durationClaim(row)}
-          ${claim("Eylem biçimi", value(row, fields.method))}
-          ${claim("Bilgiler", value(row, fields.latest))}
         </div>
       `;
     }
