@@ -4212,14 +4212,14 @@
 
     function durationClaim(row) {
       const duration = resistanceDuration(row);
-      return duration ? claim("Gün sayacı", `${duration.detail}${duration.startLabel ? ` (${duration.startLabel} başlangıç)` : ""}`) : "";
+      return duration ? claim("Kaç Gündür Direniliyor?", `${duration.detail}${duration.startLabel ? ` (${duration.startLabel} başlangıç)` : ""}`) : "";
     }
 
     function durationSnapshot(row) {
       const duration = resistanceDuration(row);
       return duration ? `
             <div>
-              <span>Gün sayacı</span>
+              <span>Kaç Gündür Direniliyor?</span>
               <strong>${esc(duration.label)}</strong>
             </div>` : "";
     }
@@ -5476,7 +5476,6 @@
           ${claim("Neden/Talepler", value(row, fields.reason))}
           ${claim("Başlangıç tarihi", value(row, fields.startDate))}
           ${durationClaim(row)}
-          ${claim("Zaman/Gün", value(row, fields.time))}
           ${claim("Eylem biçimi", value(row, fields.method))}
           ${claim("Bilgiler", value(row, fields.latest))}
           <section class="summary-news-card" aria-label="Bu direnişe ait son haberler">
@@ -7403,7 +7402,6 @@
           ${claim("Neden/Talepler", value(row, fields.reason))}
           ${claim("Başlangıç tarihi", value(row, fields.startDate))}
           ${durationClaim(row)}
-          ${claim("Zaman/Gün", value(row, fields.time))}
           ${claim("Eylem biçimi", value(row, fields.method))}
           ${claim("Durum", value(row, fields.status))}
           ${claim("Bilgiler", value(row, fields.latest))}
