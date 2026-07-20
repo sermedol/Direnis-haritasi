@@ -4885,7 +4885,6 @@
             ${favoriteIds.has(row.id) ? '<span class="tag">Favori</span>' : ""}
             ${row.isDiscovered ? '<span class="tag">Canlı keşif</span>' : ""}
             ${durationTag(row)}
-            <span class="tag">${row.pointCount ? `${row.pointCount} nokta` : "haritasız"}</span>
           </div>
         </button>
       `).join("");
@@ -5074,7 +5073,6 @@
         ${favoriteIds.has(row.id) ? '<span class="tag">Favori</span>' : ""}
         ${row.isDiscovered ? '<span class="tag">Canlı keşif</span>' : ""}
         ${durationTag(row)}
-        <span class="tag">${row.pointCount ? `${row.pointCount} harita noktası` : "haritasız kayıt"}</span>
       `;
       els.favoriteCase.textContent = favoriteIds.has(row.id) ? "Favoriden Çıkar" : "Favoriye Al";
       els.favoriteCase.classList.toggle("is-active", favoriteIds.has(row.id));
