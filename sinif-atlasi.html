@@ -611,12 +611,16 @@
       min-width: 0;
       min-height: 0;
       background: #dce5ed;
+      contain: layout paint;
+      isolation: isolate;
+      overflow: hidden;
     }
 
     #map {
       position: absolute;
       inset: 0;
       z-index: 1;
+      overflow: hidden;
       /* Harita yüklenmeden önce sayfa scroll'u doğal kalsın; gerçek Leaflet
          haritası hazır olunca sürükleme için aşağıdaki sınıf devreye girer. */
       touch-action: pan-y pinch-zoom;
@@ -637,6 +641,7 @@
       flex-wrap: wrap;
       gap: 8px;
       max-width: calc(100% - 28px);
+      transition: opacity 0.16s ease, transform 0.16s ease;
     }
 
     .hud-button {
@@ -687,6 +692,13 @@
       display: flex;
       justify-content: center;
       gap: 8px;
+      pointer-events: none;
+      transition: opacity 0.16s ease, transform 0.16s ease;
+    }
+
+    .map-stage.has-map-popup .map-hud,
+    .map-stage.has-map-popup .map-summary {
+      opacity: 0;
       pointer-events: none;
     }
 
@@ -1996,6 +2008,7 @@
     .popup-mini p {
       margin: 0;
       color: var(--muted);
+      overflow-wrap: anywhere;
     }
 
     .popup-mini button {
@@ -2995,6 +3008,52 @@
         bottom: 10px;
       }
 
+      .map-stage.has-map-popup .map-hud {
+        transform: translateY(-8px);
+      }
+
+      .map-stage.has-map-popup .map-summary {
+        transform: translateY(8px);
+      }
+
+      .leaflet-popup {
+        max-width: calc(100vw - 22px) !important;
+      }
+
+      .leaflet-popup-content-wrapper {
+        border-radius: 14px;
+      }
+
+      .leaflet-popup-content {
+        width: min(286px, calc(100vw - 64px)) !important;
+        margin: 10px;
+      }
+
+      .popup-mini {
+        gap: 6px;
+        max-height: min(244px, 52dvh);
+        overflow-y: auto;
+        overscroll-behavior: contain;
+        padding-right: 2px;
+      }
+
+      .popup-mini h3 {
+        font-size: 16px;
+        line-height: 1.18;
+        letter-spacing: 0;
+        overflow-wrap: anywhere;
+      }
+
+      .popup-mini .tag-row {
+        gap: 5px;
+        padding-left: 0;
+      }
+
+      .popup-mini button {
+        min-height: 34px;
+        padding: 8px 12px;
+      }
+
       .mini-stat {
         min-height: 66px;
       }
@@ -3872,7 +3931,13 @@
       let layer = null;
       function place() {
         const src = TILE_SOURCES[idx];
-        const opts = { maxZoom: 19, attribution: src.attr };
+        const opts = {
+          maxZoom: 19,
+          attribution: src.attr,
+          keepBuffer: isMobileExperience() ? 4 : 2,
+          updateWhenIdle: isMobileExperience(),
+          updateWhenZooming: !isMobileExperience()
+        };
         if (src.sub) opts.subdomains = src.sub;
         layer = L.tileLayer(src.url, opts);
         let errCount = 0;
@@ -3895,6 +3960,11 @@
       if (mapEl && !mapEl.querySelector(".map-fallback-msg")) {
         mapEl.innerHTML = '<div class="map-fallback-msg" style="display:flex;align-items:center;justify-content:center;height:100%;padding:24px;text-align:center;color:var(--muted);font-size:14px;line-height:1.5">Harita katmanı yüklenemedi (ağ/CDN erişimi engellenmiş olabilir).<br>Mücadele kayıtları ve tüm veriler soldaki listede ve panelde görüntülenmeye devam ediyor.</div>';
       }
+    }
+
+    function setMapPopupOpen(open) {
+      const stage = document.querySelector(".map-stage");
+      if (stage) stage.classList.toggle("has-map-popup", Boolean(open));
     }
 
     let mobileMapMode = null;
@@ -3968,6 +4038,8 @@
           })
         : L.layerGroup();
       map.addLayer(markerLayer);
+      map.on("popupopen", () => setMapPopupOpen(true));
+      map.on("popupclose", () => setMapPopupOpen(false));
       syncMapInteractionMode();
       // Veriler zaten yüklendiyse marker'ları çiz ve görünümü sığdır.
       try { if (typeof render === "function" && cases && cases.length) { render(); } } catch (e) {}
@@ -4826,8 +4898,12 @@
         // düğmelerin ARKASINDA kalabiliyordu. Bu boşluk, popup'ın her zaman
         // HUD'un altında/görünür kalmasını sağlar (özellikle mobilde, HUD
         // düğmeleri iki satıra sarabildiği için üst boşluk geniş tutuldu).
-        autoPanPaddingTopLeft: [12, 96],
-        autoPanPaddingBottomRight: [12, 12]
+        autoPan: true,
+        keepInView: true,
+        maxWidth: isMobileExperience() ? 292 : 340,
+        minWidth: isMobileExperience() ? 236 : 260,
+        autoPanPaddingTopLeft: isMobileExperience() ? [14, 112] : [16, 96],
+        autoPanPaddingBottomRight: isMobileExperience() ? [14, 116] : [16, 34]
       });
       marker.on("popupopen", () => {
         const button = document.querySelector(`[data-open-case="${entry.row.id}"]`);
