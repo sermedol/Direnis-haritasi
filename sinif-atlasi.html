@@ -4,7 +4,22 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#0f172a">
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
   <title>Direniş Haritası</title>
+  <script>
+    (function () {
+      var appVersion = "20260720-android-cache-reset";
+      try {
+        var url = new URL(window.location.href);
+        if (/^https?:$/.test(url.protocol) && url.searchParams.get("v") !== appVersion) {
+          url.searchParams.set("v", appVersion);
+          window.location.replace(url.toString());
+        }
+      } catch {}
+    })();
+  </script>
   <link rel="icon" href="data:,">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
