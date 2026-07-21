@@ -1326,6 +1326,26 @@
       box-shadow: 0 12px 26px rgba(20, 20, 20, 0.16);
     }
 
+    .press-link-source {
+      position: absolute;
+      z-index: 2;
+      top: 12px;
+      left: 12px;
+      max-width: calc(100% - 24px);
+      padding: 5px 8px;
+      color: #fff;
+      background: rgba(15, 23, 42, 0.72);
+      border: 1px solid rgba(255, 255, 255, 0.22);
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 900;
+      line-height: 1;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      backdrop-filter: blur(8px);
+    }
+
     .press-link-thumb {
       position: absolute;
       inset: 0;
@@ -3854,6 +3874,7 @@
       method: "Eylem biçimi",
       status: "Durum",
       latest: "Bilgiler",
+      media: "Medya",
       pressLinks: "Yazı/ Haber"
     };
 
@@ -5588,35 +5609,116 @@
       return null;
     }
 
-    function pressLinksFor(row) {
-      const raw = value(row, fields.pressLinks);
-      if (!raw) return [];
-      const urls = raw.match(/https?:\/\/\S+/g) || [];
-      return urls.map((url) => {
-        const clean = url.replace(/[),.;]+$/, "");
-        const youtubeId = extractYoutubeId(clean);
-        if (youtubeId) {
-          return { url: clean, youtubeId, label: "YouTube videosu", image: `https://img.youtube.com/vi/${youtubeId}/hqdefault.jpg` };
-        }
-        const searchMatch = clean.match(/[?&]s=([^&]+)/);
-        if (searchMatch) {
-          return { url: clean, isSearch: true, label: `Umut-Sen'de ara: ${decodeURIComponent(searchMatch[1])}` };
-        }
-        const slug = clean.replace(/\/+$/, "").split("/").pop() || clean;
-        const label = slug
+    function cleanPressUrl(url) {
+      return String(url || "")
+        .replace(/&amp;/g, "&")
+        .trim()
+        .replace(/[)\].,;!?'’"”>]+$/g, "");
+    }
+
+    function pressHost(url) {
+      try {
+        return new URL(url).hostname.replace(/^www\./, "").replace(/^m\./, "").toLocaleLowerCase("tr-TR");
+      } catch {
+        return "";
+      }
+    }
+
+    function pressSourceName(url, youtubeId = "") {
+      const host = pressHost(url);
+      if (youtubeId || /(^|\.)youtu\.be$|(^|\.)youtube\.com$/i.test(host)) return "YouTube";
+      if (host.includes("instagram.com")) return "Instagram";
+      if (host.includes("facebook.com") || host === "fb.watch") return "Facebook";
+      if (host.includes("umutsen.org")) return "Umut-Sen";
+      if (/(^|\.)e-?komite\.|ekomite|e-komite|komitedergi|(^|\.)komite\./i.test(host)) return "E-Komite";
+      if (host.includes("twitter.com") || host.includes("x.com")) return "X";
+      return host || "Web";
+    }
+
+    function pressLinkKind(url, youtubeId = "") {
+      const source = pressSourceName(url, youtubeId);
+      if (source === "YouTube") return "video";
+      if (["Instagram", "Facebook", "X"].includes(source)) return "social";
+      return "article";
+    }
+
+    function titleFromPressUrl(url, sourceName = "") {
+      try {
+        const parsed = new URL(url);
+        const search = parsed.searchParams.get("s") || parsed.searchParams.get("q");
+        if (search) return `${sourceName || "Sitede"} ara: ${decodeURIComponent(search).replace(/\+/g, " ")}`;
+        const parts = parsed.pathname.split("/").map((part) => part.trim()).filter(Boolean);
+        const slug = parts.reverse().find((part) => !/^\d{4}$/.test(part) && !/^\d{1,2}$/.test(part)) || parsed.hostname;
+        return decodeURIComponent(slug)
+          .replace(/\+/g, " ")
           .replace(/[-_]+/g, " ")
           .trim()
           .replace(/\b\w/g, (letter) => letter.toLocaleUpperCase("tr-TR"));
-        return { url: clean, label: label || clean };
-      });
+      } catch {
+        return sourceName || url;
+      }
+    }
+
+    function pressFallbackImage(row, link, index = 0) {
+      const [accent, soft] = posterAccentFor(row);
+      const source = svgEscape(shortText(link.sourceName || "Medya", 28));
+      const title = svgEscape(shortText(link.label || value(row, fields.title), 76));
+      const kind = link.kind === "video" ? "Video" : link.kind === "social" ? "Sosyal paylaşım" : "Yazı / Haber";
+      const mark = svgEscape(kind);
+      const svg = `
+        <svg xmlns="http://www.w3.org/2000/svg" width="960" height="540" viewBox="0 0 960 540">
+          <rect width="960" height="540" fill="${soft}"/>
+          <rect width="960" height="540" fill="#ffffff" opacity="0.55"/>
+          <circle cx="${780 - (index % 3) * 80}" cy="86" r="180" fill="${accent}" opacity="0.14"/>
+          <circle cx="118" cy="484" r="210" fill="${accent}" opacity="0.10"/>
+          <rect x="56" y="56" width="848" height="428" rx="26" fill="#ffffff" opacity="0.88"/>
+          <rect x="56" y="56" width="14" height="428" fill="${accent}"/>
+          <text x="98" y="126" fill="${accent}" font-family="Inter, Arial, sans-serif" font-size="25" font-weight="900">${source}</text>
+          <text x="98" y="214" fill="#111827" font-family="Inter, Arial, sans-serif" font-size="42" font-weight="850">${title}</text>
+          <text x="98" y="420" fill="#64748b" font-family="Inter, Arial, sans-serif" font-size="24" font-weight="800">${mark}</text>
+          <text x="692" y="420" fill="${accent}" font-family="Inter, Arial, sans-serif" font-size="23" font-weight="900">Direniş Haritası</text>
+        </svg>
+      `.replace(/\s+/g, " ").trim();
+      return `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`;
+    }
+
+    function pressLinksFor(row) {
+      const raw = [value(row, fields.pressLinks), value(row, fields.media)].filter(Boolean).join("\n");
+      if (!raw) return [];
+      const urls = raw.match(/https?:\/\/\S+/g) || [];
+      const seen = new Set();
+      return urls.map((url, index) => {
+        const clean = cleanPressUrl(url);
+        const key = normalizeMediaUrl(clean);
+        if (!clean || seen.has(key)) return null;
+        seen.add(key);
+        const youtubeId = extractYoutubeId(clean);
+        const sourceName = pressSourceName(clean, youtubeId);
+        const kind = pressLinkKind(clean, youtubeId);
+        if (youtubeId) {
+          const link = { url: clean, youtubeId, sourceName, kind, label: "YouTube videosu", image: `https://img.youtube.com/vi/${youtubeId}/hqdefault.jpg` };
+          link.fallbackImage = pressFallbackImage(row, link, index);
+          return link;
+        }
+        const searchMatch = clean.match(/[?&]s=([^&]+)/);
+        const label = searchMatch
+          ? `${sourceName}'de ara: ${decodeURIComponent(searchMatch[1]).replace(/\+/g, " ")}`
+          : (kind === "social" ? `${sourceName} paylaşımı` : titleFromPressUrl(clean, sourceName));
+        const link = { url: clean, isSearch: Boolean(searchMatch), sourceName, kind, label };
+        link.fallbackImage = pressFallbackImage(row, link, index);
+        return link;
+      }).filter(Boolean);
     }
 
     function pressLinksSection(row) {
       const links = pressLinksFor(row);
       if (!links.length) return "";
       const items = links.map((link, index) => `
-        <a class="press-link-card" href="${esc(link.url)}" target="_blank" rel="noopener" data-press-index="${index}">
-          <span class="press-link-thumb" data-press-thumb></span>
+        <a class="press-link-card" href="${esc(link.url)}" target="_blank" rel="noopener" data-press-index="${index}" data-press-kind="${esc(link.kind || "article")}" aria-label="${esc(`${link.sourceName || "Medya"}: ${link.label}`)}">
+          <span class="press-link-thumb has-image" data-press-thumb>
+            <img src="${esc(link.image || link.fallbackImage)}" alt="${esc(link.label)}" loading="lazy" decoding="async">
+          </span>
+          <span class="press-link-source">${esc(link.sourceName || "Medya")}</span>
           <span class="press-link-overlay">
             <span class="press-link-label">${esc(link.label)}</span>
           </span>
@@ -5642,6 +5744,8 @@
         const match = html.match(pattern);
         if (match && match[1]) return match[1].replace(/&amp;/g, "&");
       }
+      const markdownImage = html.match(/!\[[^\]]*]\((https?:\/\/[^)\s]+)\)/i);
+      if (markdownImage && markdownImage[1]) return markdownImage[1].replace(/&amp;/g, "&");
       return "";
     }
 
@@ -5650,9 +5754,24 @@
       const ogMatch = html.match(/<meta[^>]+property=["']og:title["'][^>]+content=["']([^"']+)["']/i)
         || html.match(/<meta[^>]+content=["']([^"']+)["'][^>]+property=["']og:title["']/i);
       const titleMatch = !ogMatch && html.match(/<title[^>]*>([^<]+)<\/title>/i);
-      const raw = ogMatch?.[1] || titleMatch?.[1] || "";
+      const markdownTitle = !ogMatch && !titleMatch && (
+        html.match(/^\s*Title:\s*(.+)$/mi) ||
+        html.match(/^\s*#\s+(.+)$/m)
+      );
+      const raw = ogMatch?.[1] || titleMatch?.[1] || markdownTitle?.[1] || "";
       if (!raw) return "";
-      return stripHtml(raw).replace(/\s*[-|–]\s*Umut-Sen.*$/i, "").trim();
+      return stripHtml(raw)
+        .replace(/\s*[-|–]\s*(Umut-Sen|E-?Komite|Komite).*$/i, "")
+        .trim();
+    }
+
+    function absolutePreviewUrl(url, baseUrl) {
+      if (!url) return "";
+      try {
+        return new URL(url.replace(/&amp;/g, "&"), baseUrl).href;
+      } catch {
+        return url;
+      }
     }
 
     async function fetchYoutubeOEmbed(url) {
@@ -5668,11 +5787,18 @@
       }
     }
 
-    function setThumbImage(thumb, src, alt) {
+    function setThumbImage(thumb, src, alt, fallback = "") {
+      if (!thumb || !src) return;
       const img = document.createElement("img");
       img.src = src;
       img.alt = alt;
       img.loading = "lazy";
+      img.decoding = "async";
+      if (fallback && fallback !== src) {
+        img.addEventListener("error", () => {
+          img.src = fallback;
+        }, { once: true });
+      }
       thumb.innerHTML = "";
       thumb.appendChild(img);
       thumb.classList.add("has-image");
@@ -5717,20 +5843,23 @@
         const thumb = card?.querySelector("[data-press-thumb]");
         if (!thumb) return;
         if (link.youtubeId) {
-          setThumbImage(thumb, link.image, link.label);
+          setThumbImage(thumb, link.image, link.label, link.fallbackImage);
           const meta = await fetchYoutubeOEmbed(link.url);
           if (token !== pressImageRequestToken || !meta) return;
           if (meta.title) setCardLabel(card, meta.title);
-          if (meta.thumbnail_url) setThumbImage(thumb, meta.thumbnail_url, meta.title || link.label);
+          if (meta.thumbnail_url) setThumbImage(thumb, meta.thumbnail_url, meta.title || link.label, link.fallbackImage);
+          return;
+        }
+        if (link.kind === "social") {
           return;
         }
         if (link.isSearch) return;
         try {
           const html = await fetchArticlePage(link.url, { background: false });
           if (token !== pressImageRequestToken) return;
-          const image = extractOgImage(html);
+          const image = absolutePreviewUrl(extractOgImage(html), link.url);
           const title = extractOgTitle(html);
-          if (image) setThumbImage(thumb, image, title || link.label);
+          if (image) setThumbImage(thumb, image, title || link.label, link.fallbackImage);
           if (title) setCardLabel(card, title);
         } catch {}
       }));
@@ -7595,7 +7724,7 @@
       if (activeRowsFingerprint === nextFingerprint && cases.length) return;
       activeRowsFingerprint = nextFingerprint;
       baseRows = rawRows;
-      mergeRows(false, options);
+      mergeRows(true, options);
     }
 
     function readRowsCache() {
