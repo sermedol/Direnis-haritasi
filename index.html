@@ -4106,6 +4106,10 @@
     let mediaWarmTimer = null;
     let mediaWarmBusy = false;
     let mediaWarmQueue = [];
+    let socialPreviewWarmTimer = null;
+    let socialPreviewWarmBusy = false;
+    let socialPreviewWarmQueue = [];
+    const socialPreviewPromises = new Map();
     let mediaAutoRefreshTimer = null;
     let mediaFetchPromises = new Map();
     let summaryRequestToken = 0;
@@ -5873,6 +5877,64 @@
       return "";
     }
 
+    function decodeHtmlEntities(text) {
+      const area = document.createElement("textarea");
+      area.innerHTML = String(text || "");
+      return area.value;
+    }
+
+    function cleanPreviewImageUrl(url) {
+      let value = decodeHtmlEntities(String(url || "").trim())
+        .replace(/\\\//g, "/")
+        .replace(/\\u0026/g, "&")
+        .replace(/&amp;/g, "&");
+      if ((value.startsWith('"') && value.endsWith('"')) || (value.startsWith("'") && value.endsWith("'"))) {
+        value = value.slice(1, -1);
+      }
+      return value;
+    }
+
+    function previewImageCandidates(html) {
+      const source = String(html || "");
+      const candidates = [];
+      const add = (url) => {
+        const clean = cleanPreviewImageUrl(url);
+        if (clean) candidates.push(clean);
+      };
+      [
+        /<meta[^>]+property=["']og:image(?::secure_url)?["'][^>]+content=["']([^"']+)["']/gi,
+        /<meta[^>]+content=["']([^"']+)["'][^>]+property=["']og:image(?::secure_url)?["']/gi,
+        /<meta[^>]+name=["']twitter:image(?::src)?["'][^>]+content=["']([^"']+)["']/gi,
+        /<meta[^>]+content=["']([^"']+)["'][^>]+name=["']twitter:image(?::src)?["']/gi,
+        /!\[[^\]]*]\((https?:\/\/[^)\s]+)\)/gi,
+        /["'](?:display_url|thumbnail_src|thumbnail_url|full_image_uri|image_url)["']\s*:\s*["']([^"']+)["']/gi,
+        /["']image["']\s*:\s*\{[^{}]{0,500}?["']uri["']\s*:\s*["']([^"']+)["']/gi
+      ].forEach((pattern) => {
+        let match;
+        while ((match = pattern.exec(source))) add(match[1]);
+      });
+      return Array.from(new Set(candidates));
+    }
+
+    function isUsableSocialPreviewImage(url) {
+      if (!/^https?:\/\//i.test(url)) return false;
+      const text = norm(url);
+      if (text.startsWith("blob:") || text.startsWith("data:")) return false;
+      if (text.includes("static.xx.fbcdn.net") || text.includes("static.cdninstagram.com")) return false;
+      if (text.includes("/rsrc.php") || text.includes("favicon") || text.includes("sprite")) return false;
+      if (text.includes("blank") || text.includes("placeholder") || text.includes("profile_pic")) return false;
+      return /(scontent|fbcdn|cdninstagram|instagram|fna\.fbcdn|external\..*fbcdn)/i.test(url) ||
+        /\.(jpe?g|png|webp)(\?|#|$)/i.test(url);
+    }
+
+    function extractSocialPreviewImage(html, baseUrl) {
+      for (const candidate of previewImageCandidates(html)) {
+        const image = absolutePreviewUrl(candidate, baseUrl);
+        if (isUsableSocialPreviewImage(image)) return image;
+      }
+      return "";
+    }
+
     function extractOgTitle(html) {
       if (!html) return "";
       const ogMatch = html.match(/<meta[^>]+property=["']og:title["'][^>]+content=["']([^"']+)["']/i)
@@ -5933,6 +5995,214 @@
       if (label && text) label.textContent = text;
     }
 
+    function cleanSocialPreviewTitle(title, fallback = "") {
+      const text = stripHtml(title || "").replace(/\s+/g, " ").trim();
+      if (!text || /^(error|log in|login|facebook|instagram)$/i.test(text)) return fallback;
+      return shortText(text.replace(/\s*\|\s*(Umut-Sen|Facebook|Instagram).*$/i, ""), 128);
+    }
+
+    function socialPreviewCacheKey(url) {
+      return `press-social-preview:${url}`;
+    }
+
+    function readSocialPreviewCache(url) {
+      try {
+        const cached = JSON.parse(localStorage.getItem(socialPreviewCacheKey(url)) || "null");
+        if (!cached?.preview?.image) return null;
+        if (Date.now() - (cached.updatedAt || 0) > 6 * 60 * 60 * 1000) return null;
+        return cached.preview;
+      } catch {
+        return null;
+      }
+    }
+
+    function writeSocialPreviewCache(url, preview) {
+      try {
+        if (!preview?.image) return;
+        localStorage.setItem(socialPreviewCacheKey(url), JSON.stringify({
+          updatedAt: Date.now(),
+          preview
+        }));
+      } catch {}
+    }
+
+    function extractFacebookNextUrls(html, sourceUrl = "") {
+      const urls = [];
+      const add = (url) => {
+        try {
+          const parsed = new URL(cleanPreviewImageUrl(url), sourceUrl || location.href);
+          const host = parsed.hostname.replace(/^www\./, "").replace(/^m\./, "");
+          if (host !== "facebook.com") return;
+          if (/\/(?:login|recover|help|policies|careers|developers)\b/i.test(parsed.pathname)) return;
+          parsed.hash = "";
+          urls.push(parsed.href);
+        } catch {}
+      };
+      const source = String(html || "");
+      let match;
+      const nextPattern = /[?&]next=([^&\s)\]]+)/gi;
+      while ((match = nextPattern.exec(source))) {
+        try {
+          add(decodeURIComponent(match[1]));
+        } catch {}
+      }
+      const facebookPattern = /https?:\/\/(?:www\.|m\.)?facebook\.com\/[^\s)"'<>]+/gi;
+      while ((match = facebookPattern.exec(source))) add(match[0]);
+      return Array.from(new Set(urls)).slice(0, 4);
+    }
+
+    async function readSocialPreviewSource(requestUrl, sourceUrl, timeout = 12000) {
+      try {
+        const response = await fetchWithTimeout(requestUrl, {}, timeout, { background: false });
+        if (!response.ok && !requestUrl.includes("r.jina.ai")) return null;
+        const text = await response.text();
+        if (!text || text.length < 100) return null;
+        const title = cleanSocialPreviewTitle(extractOgTitle(text));
+        return {
+          image: extractSocialPreviewImage(text, sourceUrl),
+          title,
+          nextUrls: extractFacebookNextUrls(text, sourceUrl)
+        };
+      } catch {
+        return null;
+      }
+    }
+
+    async function fetchMicrolinkPreview(link) {
+      try {
+        const url = `https://api.microlink.io/?url=${encodeURIComponent(link.url)}`;
+        const response = await fetchWithTimeout(url, {}, 12000, { background: false });
+        if (!response.ok) return null;
+        const data = await response.json();
+        const image = cleanPreviewImageUrl(data?.data?.image?.url || "");
+        if (!isUsableSocialPreviewImage(image)) return null;
+        return {
+          image,
+          title: cleanSocialPreviewTitle(data?.data?.title || "")
+        };
+      } catch {
+        return null;
+      }
+    }
+
+    function socialPreviewSourceUrls(url) {
+      const urls = [url];
+      try {
+        const parsed = new URL(url);
+        const host = parsed.hostname.replace(/^www\./, "").replace(/^m\./, "");
+        if (host === "facebook.com" && /^\/share\//i.test(parsed.pathname)) {
+          const mobile = new URL(parsed.href);
+          mobile.hostname = "m.facebook.com";
+          urls.push(mobile.href);
+        }
+      } catch {}
+      return Array.from(new Set(urls));
+    }
+
+    async function fetchSocialPreviewFresh(link) {
+      const cached = readSocialPreviewCache(link.url);
+      if (cached) return cached;
+      let fallbackTitle = "";
+      const collect = async (tasks) => {
+        const pending = new Map(tasks.map((task, index) => {
+          const wrapped = task
+            .then((value) => ({ index, value }))
+            .catch(() => ({ index, value: null }));
+          return [index, wrapped];
+        }));
+        const nextUrls = [];
+        while (pending.size) {
+          const settled = await Promise.race(pending.values());
+          pending.delete(settled.index);
+          const value = settled.value;
+          if (!value) continue;
+          if (!fallbackTitle && value.title) fallbackTitle = value.title;
+          if (value.image) {
+            return { preview: { image: value.image, title: value.title || fallbackTitle }, nextUrls };
+          }
+          nextUrls.push(...(value.nextUrls || []));
+        }
+        return { preview: null, nextUrls };
+      };
+
+      const primary = await collect([
+        ...socialPreviewSourceUrls(link.url).map((url) => readSocialPreviewSource(jinaReaderUrl(url), url, 24000)),
+        fetchMicrolinkPreview(link)
+      ]);
+      if (primary.preview) {
+        writeSocialPreviewCache(link.url, primary.preview);
+        return primary.preview;
+      }
+      const followUps = Array.from(new Set(primary.nextUrls || [])).slice(0, 4);
+      for (const url of followUps) {
+        const preview = await readSocialPreviewSource(jinaReaderUrl(url), url, 12000);
+        if (!fallbackTitle && preview?.title) fallbackTitle = preview.title;
+        if (preview?.image) {
+          const result = { image: preview.image, title: preview.title || fallbackTitle };
+          writeSocialPreviewCache(link.url, result);
+          return result;
+        }
+      }
+      const ownProxy = await readSocialPreviewSource(ownProxyUrl(link.url), link.url, 4500);
+      if (!fallbackTitle && ownProxy?.title) fallbackTitle = ownProxy.title;
+      if (ownProxy?.image) {
+        const result = { image: ownProxy.image, title: ownProxy.title || fallbackTitle };
+        writeSocialPreviewCache(link.url, result);
+        return result;
+      }
+      return fallbackTitle ? { image: "", title: fallbackTitle } : null;
+    }
+
+    async function fetchSocialPreview(link) {
+      const cached = readSocialPreviewCache(link.url);
+      if (cached) return cached;
+      const pending = socialPreviewPromises.get(link.url);
+      if (pending) return pending;
+      const request = fetchSocialPreviewFresh(link);
+      socialPreviewPromises.set(link.url, request);
+      try {
+        return await request;
+      } finally {
+        socialPreviewPromises.delete(link.url);
+      }
+    }
+
+    function socialPreviewLinksForRows(rows = cases) {
+      const seen = new Set();
+      return (rows || []).flatMap((row) => pressLinksFor(row).filter((link) => link.kind === "social"))
+        .filter((link) => {
+          if (!link.url || seen.has(link.url) || readSocialPreviewCache(link.url)) return false;
+          seen.add(link.url);
+          return true;
+        });
+    }
+
+    function scheduleSocialPreviewWarmup(rows = cases, options = {}) {
+      if (navigator.onLine === false) return;
+      const links = socialPreviewLinksForRows(rows).slice(0, options.limit ?? (isMobileExperience() ? 8 : 16));
+      if (!links.length) return;
+      socialPreviewWarmQueue = links;
+      if (socialPreviewWarmTimer) window.clearTimeout(socialPreviewWarmTimer);
+      socialPreviewWarmTimer = window.setTimeout(warmSocialPreviewQueue, options.delay ?? 1200);
+    }
+
+    async function warmSocialPreviewQueue() {
+      if (socialPreviewWarmBusy || navigator.onLine === false) return;
+      socialPreviewWarmBusy = true;
+      try {
+        while (socialPreviewWarmQueue.length) {
+          const link = socialPreviewWarmQueue.shift();
+          if (!link || readSocialPreviewCache(link.url)) continue;
+          try {
+            await fetchSocialPreview(link);
+          } catch {}
+          await new Promise((resolve) => window.setTimeout(resolve, 180));
+        }
+      } finally {
+        socialPreviewWarmBusy = false;
+      }
+    }
+
     function stopPressAutoplay() {
       pressAutoplayTimers.forEach((timer) => window.clearInterval(timer));
       pressAutoplayTimers = [];
@@ -5975,6 +6245,10 @@
           return;
         }
         if (link.kind === "social") {
+          const preview = await fetchSocialPreview(link);
+          if (token !== pressImageRequestToken || !preview) return;
+          if (preview.image) setThumbImage(thumb, preview.image, preview.title || link.label, link.fallbackImage);
+          if (preview.title) setCardLabel(card, preview.title);
           return;
         }
         if (link.isSearch) return;
@@ -7849,6 +8123,7 @@
       activeRowsFingerprint = nextFingerprint;
       baseRows = rawRows;
       mergeRows(true, options);
+      scheduleSocialPreviewWarmup(cases, { delay: sourceLabel === "Çevrimiçi" ? 800 : 1600 });
     }
 
     function readRowsCache() {
