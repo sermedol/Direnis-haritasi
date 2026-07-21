@@ -634,11 +634,13 @@
 
     .map-hud {
       position: absolute;
-      left: 14px;
+      left: auto;
+      right: 14px;
       top: 14px;
       z-index: 650;
       display: flex;
       flex-wrap: wrap;
+      justify-content: flex-end;
       gap: 8px;
       max-width: calc(100% - 28px);
       transition: opacity 0.16s ease, transform 0.16s ease;
@@ -2617,7 +2619,8 @@
     }
 
     .map-hud {
-      left: 18px;
+      left: auto;
+      right: 18px;
       top: 18px;
       gap: 9px;
     }
@@ -3007,7 +3010,7 @@
       }
 
       .map-hud {
-        left: 10px;
+        left: 62px;
         right: 10px;
         top: 10px;
       }
