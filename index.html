@@ -4,7 +4,23 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#0f172a">
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
   <title>Direniş Haritası</title>
+  <link rel="canonical" href="https://direnis-haritasi.umutsen.org">
+  <script>
+    (function () {
+      try {
+        var url = new URL(window.location.href);
+        if (/^https?:$/.test(url.protocol) && (url.pathname !== "/" || url.search || url.hash)) {
+          window.history.replaceState(null, "", "/");
+        }
+      } catch {}
+    })();
+  </script>
+  <link rel="icon" type="image/png" href="/favicon.png">
+  <link rel="apple-touch-icon" href="/favicon.png">
   <meta name="description" content="Türkiye ve dünyadan işçi direnişlerini, ekoloji mücadelelerini ve adalet nöbetlerini gösteren canlı harita. Umut-Sen.">
   <meta property="og:type" content="website">
   <meta property="og:url" content="https://direnis-haritasi.umutsen.org/">
@@ -19,7 +35,6 @@
   <meta name="twitter:title" content="Direniş Haritası">
   <meta name="twitter:description" content="Türkiye ve dünyadan işçi direnişlerini, ekoloji mücadelelerini ve adalet nöbetlerini gösteren canlı harita. Umut-Sen.">
   <meta name="twitter:image" content="https://direnis-haritasi.umutsen.org/og-image.png">
-  <link rel="icon" href="https://direnis-haritasi.umutsen.org/og-image.png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&display=swap">
@@ -610,26 +625,39 @@
       min-width: 0;
       min-height: 0;
       background: #dce5ed;
+      contain: layout paint;
+      isolation: isolate;
+      overflow: hidden;
     }
 
     #map {
       position: absolute;
       inset: 0;
       z-index: 1;
-      /* Mobilde sayfa kaydırması harita üstünden başlasa bile tarayıcıya
-         bırakılır; haritanın ana thread'i scroll'u kilitlemesin. */
+      overflow: hidden;
+      /* Harita yüklenmeden önce sayfa scroll'u doğal kalsın; gerçek Leaflet
+         haritası hazır olunca sürükleme için aşağıdaki sınıf devreye girer. */
       touch-action: pan-y pinch-zoom;
+    }
+
+    #map.is-map-interactive {
+      touch-action: none;
+      -ms-touch-action: none;
+      overscroll-behavior: contain;
     }
 
     .map-hud {
       position: absolute;
-      left: 14px;
+      left: 58px;
+      right: auto;
       top: 14px;
       z-index: 650;
       display: flex;
       flex-wrap: wrap;
+      justify-content: flex-start;
       gap: 8px;
-      max-width: calc(100% - 28px);
+      max-width: calc(100% - 72px);
+      transition: opacity 0.16s ease, transform 0.16s ease;
     }
 
     .hud-button {
@@ -680,6 +708,13 @@
       display: flex;
       justify-content: center;
       gap: 8px;
+      pointer-events: none;
+      transition: opacity 0.16s ease, transform 0.16s ease;
+    }
+
+    .map-stage.has-map-popup .map-hud,
+    .map-stage.has-map-popup .map-summary {
+      opacity: 0;
       pointer-events: none;
     }
 
@@ -1305,6 +1340,26 @@
     .press-link-card:focus {
       transform: translateY(-2px);
       box-shadow: 0 12px 26px rgba(20, 20, 20, 0.16);
+    }
+
+    .press-link-source {
+      position: absolute;
+      z-index: 2;
+      top: 12px;
+      left: 12px;
+      max-width: calc(100% - 24px);
+      padding: 5px 8px;
+      color: #fff;
+      background: rgba(15, 23, 42, 0.72);
+      border: 1px solid rgba(255, 255, 255, 0.22);
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 900;
+      line-height: 1;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      backdrop-filter: blur(8px);
     }
 
     .press-link-thumb {
@@ -1989,6 +2044,7 @@
     .popup-mini p {
       margin: 0;
       color: var(--muted);
+      overflow-wrap: anywhere;
     }
 
     .popup-mini button {
@@ -2577,7 +2633,8 @@
     }
 
     .map-hud {
-      left: 18px;
+      left: 62px;
+      right: auto;
       top: 18px;
       gap: 9px;
     }
@@ -2967,17 +3024,10 @@
       }
 
       .map-hud {
-        /* Leaflet'in +/- yakınlaştırma kontrolü sol üstte ~10px kenar
-           boşluğuyla duruyor (genişliği ~34px); HUD'u onun HEMEN yanına,
-           aynı üst hizada, ama köşeye yapışık olmayacak şekilde konumlar.
-           Önceki "left + right" birlikte kullanımı, düğmelerin "büyüyerek
-           doldur" (flex-grow) davranışıyla birleşince HUD'un tüm genişliğe
-           yayılmasına yol açıyordu — ikisi de kaldırıldı, HUD artık sadece
-           kendi içeriği kadar yer kaplıyor. */
-        left: 60px;
+        left: 56px;
         right: auto;
         top: 10px;
-        width: fit-content;
+        max-width: calc(100% - 66px);
       }
 
       .hud-button {
@@ -2994,6 +3044,52 @@
         left: 10px;
         right: 10px;
         bottom: 10px;
+      }
+
+      .map-stage.has-map-popup .map-hud {
+        transform: translateY(-8px);
+      }
+
+      .map-stage.has-map-popup .map-summary {
+        transform: translateY(8px);
+      }
+
+      .leaflet-popup {
+        max-width: calc(100vw - 22px) !important;
+      }
+
+      .leaflet-popup-content-wrapper {
+        border-radius: 14px;
+      }
+
+      .leaflet-popup-content {
+        width: min(286px, calc(100vw - 64px)) !important;
+        margin: 10px;
+      }
+
+      .popup-mini {
+        gap: 6px;
+        max-height: min(244px, 52dvh);
+        overflow-y: auto;
+        overscroll-behavior: contain;
+        padding-right: 2px;
+      }
+
+      .popup-mini h3 {
+        font-size: 16px;
+        line-height: 1.18;
+        letter-spacing: 0;
+        overflow-wrap: anywhere;
+      }
+
+      .popup-mini .tag-row {
+        gap: 5px;
+        padding-left: 0;
+      }
+
+      .popup-mini button {
+        min-height: 34px;
+        padding: 8px 12px;
       }
 
       .mini-stat {
@@ -3491,7 +3587,7 @@
         </div>
       </div>
       <label class="global-search" aria-label="Tek arama">
-        <input id="search" type="search" placeholder="Ara: Doruk Maden, Akbelen, Gebze, sendika, ekoloji..." autocomplete="off">
+        <input id="search" type="search" placeholder="Ara: direniş, şehir, sendika" autocomplete="off">
       </label>
     </header>
 
@@ -3514,10 +3610,8 @@
 
       <section class="map-stage" aria-label="Coğrafi istihbarat">
         <div id="map"></div>
-        <div class="map-hud">
+        <div class="map-hud" aria-label="Harita kontrolleri">
           <button id="fitFiltered" class="hud-button" type="button">Görüneni Sığdır</button>
-          <button id="focusTurkey" class="hud-button" type="button">Türkiye</button>
-          <button id="reloadPage" class="hud-button mobile-only-action" type="button">Sayfayı Yenile</button>
         </div>
         <div class="map-summary">
           <button class="mini-stat" type="button" data-stat-filter="active"><span>Aktif direnişler</span><strong id="activeCount">0</strong></button>
@@ -3639,27 +3733,43 @@
       };
     })();
 
-    if (!window.matchMedia || !window.matchMedia("(max-width: 900px), (hover: none), (pointer: coarse)").matches) {
-      window.__leafletReady = window.__loadLeaflet();
-    }
+    window.__leafletReady = new Promise(function (resolve) {
+      function startLoad() {
+        window.setTimeout(function () {
+          if (typeof window.__loadLeaflet !== "function") { resolve(false); return; }
+          window.__loadLeaflet().then(resolve).catch(function () { resolve(false); });
+        }, window.matchMedia && window.matchMedia("(max-width: 900px), (hover: none), (pointer: coarse)").matches ? 180 : 0);
+      }
+      function scheduleLoad() {
+        if ("requestIdleCallback" in window) window.requestIdleCallback(startLoad, { timeout: 700 });
+        else startLoad();
+      }
+      if (document.readyState === "loading") {
+        document.addEventListener("DOMContentLoaded", scheduleLoad, { once: true });
+      } else {
+        scheduleLoad();
+      }
+    });
   </script>
   <script>
     const SHEET_ID = "1wuzkNQcQiMKGWWB0l4GfZNfspA0Xwk6NFRMNpDDPlLk";
     const SHEET_TITLE = "Direniş Haritası";
-    const GENERATED_AT = "2026-07-06 15:30:00 +03:00";
-    const FALLBACK_ROWS = [{"Alan":"Emek","Ne":"P\u0026G grevi","Nerede":"Gebze / Kocaeli","Kim":"DİSK Lastik İş üyesi P\u0026G işçileri","Neden":"Yüzde 5 sefalet zammı, TİS uyuşmazlığı, grev kırıcı hamleler","Ne zaman / kaçıncı gün":"12 Mayıs 2026’dan beri, 37. gün","Nasıl":"Grev çadırı, fabrika önü nöbet, dayanışma ziyaretleri","Durum / sonuç":"Devam ediyor","Son gelişme":"Grev alanı Gebze havzasında işçi dayanışmasının merkezlerinden biri haline geldi"},{"Alan":"Emek","Ne":"Yolbulan Metal grevi","Nerede":"Hatay Dörtyol","Kim":"Özçelik İş üyesi metal işçileri","Neden":"Düşük ücret dayatması, TİS uyuşmazlığı, insanca ücret talebi","Ne zaman / kaçıncı gün":"20 Haziran 2024’ten beri, 728. gün","Nasıl":"Grev, fabrika önü bekleyiş, dayanışma ziyaretleri","Durum / sonuç":"Devam ediyor","Son gelişme":"Türkiye’nin en uzun soluklu güncel grevlerinden biri olarak sürüyor"},{"Alan":"Emek","Ne":"Temel Conta grevi","Nerede":"İzmir Kemalpaşa","Kim":"Petrol İş üyesi işçiler","Neden":"İnsanca ücret, ağır çalışma koşulları, sendikal haklar, patronun makine kaçırma girişimi","Ne zaman / kaçıncı gün":"400 günü çoktan aştı, gün sayısı sahadan teyit edilecek","Nasıl":"Fabrika önü grev, makine çıkışına karşı nöbet","Durum / sonuç":"Devam ediyor","Son gelişme":"İşçiler makine kaçırma girişimlerine karşı fiili nöbeti sürdürüyor"},{"Alan":"Emek","Ne":"TÜVTÜRK grevi","Nerede":"İstanbul’daki muayene istasyonları","Kim":"DİSK Nakliyat İş üyesi işçiler","Neden":"TİS sürecinin tıkanması, işverenin masaya oturmaması, grev kırıcılık","Ne zaman / kaçıncı gün":"13 Aralık 2025’ten beri, 187. gün","Nasıl":"İstasyon önü grev, açıklamalar, dayanışma ziyaretleri","Durum / sonuç":"Devam ediyor","Son gelişme":"Grev kırıcılık iddialarına rağmen grev sürüyor"},{"Alan":"Emek","Ne":"Safe Spice grevi","Nerede":"İzmir Ege Serbest Bölgesi","Kim":"Tekgıda İş üyesi işçiler","Neden":"Ücret artışı, sosyal haklar, taşeron yasağı, işten çıkarılanların geri dönüşü","Ne zaman / kaçıncı gün":"8 Mayıs 2026’da başladı, 34 gün sürdü","Nasıl":"Grev, fabrika önü bekleyiş, dayanışma","Durum / sonuç":"Kazanımla sonuçlandı","Son gelişme":"TİS imzalandı, sosyal haklar ve taşeron yasağı başlıklarında kazanım sağlandı"},{"Alan":"Emek","Ne":"Tapeten Mensucat grevi","Nerede":"Ankara Sincan","Kim":"TEKSİF üyesi işçiler","Neden":"Mobbing, kötü çalışma koşulları, hijyen sorunu, TİS ve sendikal haklar","Ne zaman / kaçıncı gün":"Eylül 2025’ten beri, yaklaşık 287. gün","Nasıl":"Fabrika önü grev, dayanışma ziyaretleri","Durum / sonuç":"Devam ediyor","Son gelişme":"Az sayıda işçiyle süren grev sendikal hak mücadelesi olarak devam ediyor"},{"Alan":"Emek","Ne":"Colin’s / Eroğlu Moda Tekstil grevi","Nerede":"İstanbul Avcılar, Tokat ve mağaza önleri","Kim":"Öz İplik İş üyesi işçiler","Neden":"TİS uyuşmazlığı, ücret ve sosyal hak talepleri","Ne zaman / kaçıncı gün":"30 Nisan / 1 Mayıs 2026’dan beri, yaklaşık 48-49. gün","Nasıl":"Fabrika önü grev, mağaza önü açıklamalar","Durum / sonuç":"Devam ediyor","Son gelişme":"Mücadele farklı kentlerde Colin’s mağazaları önüne taşındı"},{"Alan":"Emek","Ne":"Şık Makas / CRS Tekstil direnişi","Nerede":"Tokat, İstanbul, Çorlu hattı","Kim":"BİRTEK SEN’e geçen işçiler","Neden":"Ödenmeyen maaşlar, kıdem ve ihbar tazminatları, sendika seçme hakkı, Kod 22 ile işten atma","Ne zaman / kaçıncı gün":"Ekim 2025 çıkışlı, yaklaşık 255. gün","Nasıl":"Direniş çadırı, meydan açıklamaları, TBMM girişimleri","Durum / sonuç":"Devam ediyor","Son gelişme":"İşçiler alacaklarının ve tazminatlarının tamamı için mücadeleyi sürdürüyor"},{"Alan":"Emek","Ne":"DIGEL Tekstil direnişi","Nerede":"İzmir Ege Serbest Bölgesi","Kim":"TEKSİF üyesi işçiler","Neden":"Sendikal yetki, işe iade, mobbing, baskı, düşük ücret","Ne zaman / kaçıncı gün":"17 Ocak 2025 çıkışlı, yaklaşık 517. gün","Nasıl":"Serbest bölge önü nöbet, hukuki mücadele, dayanışma","Durum / sonuç":"Devam ediyor","Son gelişme":"TEKSİF’in yetkisi tanındı, işe iade ve TİS talebi sürüyor"},{"Alan":"Emek","Ne":"Barta Tekstil direnişi","Nerede":"İzmir","Kim":"Dev Tekstil üyesi tekstil işçileri","Neden":"Kod oyunları, tazminatsız işten çıkarma, sendikal baskı","Ne zaman / kaçıncı gün":"Gün teyit edilecek","Nasıl":"Fabrika önü nöbet, sendikal açıklama","Durum / sonuç":"Devam ediyor","Son gelişme":"İşçiler hakları ve işe iade için direniyor"},{"Alan":"Emek","Ne":"Gezer Tekstil / Gezer Terlik mücadelesi","Nerede":"Bolu / Esenyurt hattı","Kim":"TEKSİF üyesi işçiler","Neden":"Sendika düşmanlığı, işten atma, ücret ve tazminat hakları","Ne zaman / kaçıncı gün":"Gün teyit edilecek","Nasıl":"Fabrika önü açıklama, sendikal örgütlenme, hukuki takip","Durum / sonuç":"Devam ediyor / teyit edilecek","Son gelişme":"TEKSİF hattında işyeri temelli hak mücadelesi sürüyor"},{"Alan":"Emek","Ne":"Şişli Belediyesi işçileri direnişi","Nerede":"İstanbul Şişli","Kim":"Belediye işçileri","Neden":"İşten çıkarma, ücret gecikmeleri, TİS haklarının uygulanmaması, norm kadro sorunu","Ne zaman / kaçıncı gün":"Gün teyit edilecek","Nasıl":"Belediye önü açıklama, oturma eylemi, iş bırakma","Durum / sonuç":"Devam ediyor","Son gelişme":"İşçiler kötü bütçe yönetiminin faturasının işçilere kesilmesine karşı çıkıyor"},{"Alan":"Emek","Ne":"Belediye işçileri norm kadro ve zam mücadeleleri","Nerede":"Türkiye geneli","Kim":"Belediye şirket işçileri","Neden":"Norm kadro dışı bırakılma, düşük zam, şirket işçiliği, güvencesizlik","Ne zaman / kaçıncı gün":"Lokal ve dönemsel","Nasıl":"Belediye önü açıklama, iş bırakma, oturma eylemi","Durum / sonuç":"Devam ediyor","Son gelişme":"Farklı belediyelerde zam ve kadro talepli lokal eylemler sürüyor"},{"Alan":"Emek","Ne":"Turan Çil direnişi","Nerede":"İstanbul Beşiktaş Belediyesi","Kim":"Beşiktaş Belediyesi işçisi Turan Çil","Neden":"Düzensiz maaş ödemelerine itiraz ettiği için işten çıkarılma, işe iade talebi","Ne zaman / kaçıncı gün":"16 Aralık 2025’ten beri, 184. gün","Nasıl":"Belediye önü bekleyiş, açıklama, dayanışma ziyaretleri","Durum / sonuç":"Devam ediyor","Son gelişme":"İşe dönüş sözüne rağmen resmi giriş yapılmadığı için direniş sürüyor"},{"Alan":"Emek","Ne":"Seyhan Özkan direnişi","Nerede":"İstanbul Ataşehir Belediyesi","Kim":"Ataşehir Belediyesi işçisi Seyhan Özkan","Neden":"EYT gerekçesi, hukuksuz sınav dayatması, 08 emeklilik koduyla işten çıkarma, işe iade","Ne zaman / kaçıncı gün":"Gün teyit edilecek","Nasıl":"Belediye önü takip, açıklama, dayanışma","Durum / sonuç":"Devam ediyor","Son gelişme":"İşe iade talebiyle mücadele sürüyor"},{"Alan":"Emek","Ne":"İBB Ağaç AŞ işçileri direnişi","Nerede":"İstanbul","Kim":"Ağaç ve Peyzaj AŞ işçileri","Neden":"Güvenlik soruşturması bahanesiyle işten çıkarma, işe iade","Ne zaman / kaçıncı gün":"30 Nisan 2026’dan beri, 49. gün","Nasıl":"Saraçhane ve kurum önü açıklamalar, dayanışma ziyaretleri","Durum / sonuç":"Devam ediyor","Son gelişme":"İşçiler güvenlik soruşturması bahanesiyle yapılan işten çıkarmalara karşı direniyor"},{"Alan":"Emek","Ne":"Mersin Liman işçileri direnişi","Nerede":"Mersin Limanı","Kim":"TÜMTİS üyesi liman işçileri","Neden":"Taşeron firma üzerinden işten çıkarma, sendikal hak, işe iade","Ne zaman / kaçıncı gün":"1 Ocak 2026’dan beri, 168. gün","Nasıl":"Liman kapısı önü bekleyiş, ailelerle eylem, adliye ve basın açıklamaları","Durum / sonuç":"Devam ediyor","Son gelişme":"180’i aşkın işçi işe iade ve sendikal hak için direniyor"},{"Alan":"Emek","Ne":"Bursagaz direnişi","Nerede":"Bursa","Kim":"DİSK Enerji Sen üyesi enerji işçileri","Neden":"Sendikal yetkiye itiraz, işten çıkarma, TİS hakkının engellenmesi","Ne zaman / kaçıncı gün":"Haziran 2026’dan beri, yaklaşık 8. gün","Nasıl":"Şirket önü bekleyiş, kent meydanı açıklamaları, dayanışma çağrıları","Durum / sonuç":"Devam ediyor","Son gelişme":"İşçiler atılanların geri alınmasını ve yetki itirazının çekilmesini istiyor"},{"Alan":"Emek","Ne":"Trendyol Lojistik direnişi","Nerede":"Denizli","Kim":"DİSK İletişim İş, GHZ Lojistik / Trendyol Lojistik işçileri","Neden":"Prim adaletsizliği, vardiya düzeni, performans baskısı, tuvalet molaları, terfi eşitsizliği","Ne zaman / kaçıncı gün":"16 Haziran 2026’dan beri, 2. gün","Nasıl":"Dağıtım merkezi önü yürüyüş, 11 maddelik talep açıklaması","Durum / sonuç":"Devam ediyor","Son gelişme":"İşçiler insani vardiya, şeffaf prim ve baskısız çalışma talep ediyor"},{"Alan":"Emek / lojistik hafızası","Ne":"Trendyol Go kurye direnişleri","Nerede":"Türkiye geneli, özellikle İstanbul","Kim":"Esnaf kuryeler","Neden":"Paket başı ücret, mazot ve bakım maliyeti, zorunlu çalışma slotları, güvencesizlik","Ne zaman / kaçıncı gün":"Geçmiş dönem mücadele hattı","Nasıl":"Kontak kapatma, genel merkez önü eylem","Durum / sonuç":"Fiili dalga geçmişte, etkisi sürüyor","Son gelişme":"Lojistik işkolunun örgütlenme hafızasında önemli bir deneyim"},{"Alan":"Emek / depo hafızası","Ne":"Trendyol Esenyurt depo direnişi","Nerede":"İstanbul Esenyurt / Maslak","Kim":"Depo işçileri, PTT Sen ve DGD SEN hattı","Neden":"Taşeron sistem, kısa süreli sözleşmeler, sendikal örgütlenme nedeniyle işten çıkarma","Ne zaman / kaçıncı gün":"Geçmiş dönem mücadele hattı","Nasıl":"Depo önü ve genel merkez önü eylem, hukuki takip","Durum / sonuç":"Fiili direniş geçmişte, takip sürüyor","Son gelişme":"Taşeron depo rejimine karşı mücadele hafızası olarak güncelliğini koruyor"},{"Alan":"Emek / DGD-SEN","Ne":"Migros depo işçileri direnişi","Nerede":"Esenyurt, Adana, Bursa, Ankara ve farklı depolar","Kim":"DGD-SEN üyesi Migros depo işçileri","Neden":"Sefalet zammı, taşeron çalışma, işten çıkarma tehdidi, sendikal haklar","Ne zaman / kaçıncı gün":"23 gün sürdü","Nasıl":"Fiili grev, depo önü bekleyiş, ülke geneline yayılan iş bırakmalar","Durum / sonuç":"Kazanımla sonuçlandı","Son gelişme":"Taşeron uygulamasının kaldırılması, kadroya geçiş, tazminat ve işe dönüş başlıklarında kazanım sağlandı"},{"Alan":"Emek / DGD-SEN","Ne":"Sedef Tersanesi işçileri direnişi","Nerede":"Tuzla / Sedef Tersanesi","Kim":"DGD-SEN’in desteklediği Scafis taşeronu tersane işçileri","Neden":"İki ayı aşan ücret alacakları, taşeronun ödeme yapmaması, verilen sözlerin tutulmaması","Ne zaman / kaçıncı gün":"2 gün sürdü","Nasıl":"İş bırakma, tersane önü bekleyiş, DGD-SEN dayanışması","Durum / sonuç":"Kazanımla sonuçlandı","Son gelişme":"Direniş ikinci günün sonunda kazanımla bitti"},{"Alan":"Emek / maden","Ne":"Kiremitçiler Özşen Maden direnişi","Nerede":"Edirne Uzunköprü / Tekirdağ hattı","Kim":"Bağımsız Maden İş üyesi Özşen madencileri","Neden":"Ödenmeyen ücretler, fazla mesailer, işten çıkarmalar, BES ve icra kesintileri, kıdem ve tazminat hakları","Ne zaman / kaçıncı gün":"27 gün sürdü","Nasıl":"Ocak önü direnişi, yeraltı eylemi, açlık grevi, dayanışma ziyaretleri","Durum / sonuç":"Kazanımla sonuçlandı","Son gelişme":"İşçiler 27. günde kazanımla yerüstüne çıktı, açlık grevi bitirildi"},{"Alan":"Emek / maden","Ne":"Doruk Madencilik / Yunus Emre Termik Santrali işçileri","Nerede":"Eskişehir Mihalıççık / Ankara / Beypazarı hattı","Kim":"Bağımsız Maden İş’in takip ettiği Doruk Madencilik işçileri, Türkiye Maden İş üyesi işçiler ve aileleri","Neden":"Ödenmeyen maaşlar, tazminatlar, BES ve icra kesintileri, hak gaspları","Ne zaman / kaçıncı gün":"Nisan 2026’dan beri yeni eylem dalgası, gün sahadan teyit edilecek","Nasıl":"Ankara yürüyüşü, bakanlık önü eylem, açlık grevi, holding önü çağrılar","Durum / sonuç":"Devam ediyor","Son gelişme":"İşçiler eksik alacaklar ve tazminatlar için mücadeleyi sürdürüyor"},{"Alan":"Emek","Ne":"Özel sektör öğretmenleri Ankara direnişi","Nerede":"Ankara ve farklı kentler","Kim":"Özel Sektör Öğretmenleri Sendikası, mülakat mağduru öğretmenler","Neden":"Taban maaş, güvenceli çalışma, 10 aylık sözleşme dayatması, mülakat mağduriyeti","Ne zaman / kaçıncı gün":"1 Haziran ve 14 Haziran çağrılarıyla yeni evrede","Nasıl":"Ankara buluşması, MEB önü açıklamalar, kent eylemleri","Durum / sonuç":"Devam ediyor","Son gelişme":"Taban maaş ve güvenceli çalışma talebi merkezi başlık haline geldi"},{"Alan":"Emek","Ne":"İnşaat işçileri direnişleri","Nerede":"Türkiye geneli, büyük şantiyeler","Kim":"Yapı Yol İş, Dev Yapı İş, İnşaat İş öncülüğündeki inşaat işçileri","Neden":"Ödenmeyen ücretler, kötü barınma ve yemek koşulları, taşeron sömürüsü, iş güvenliği","Ne zaman / kaçıncı gün":"Lokal ve dönemsel","Nasıl":"Şantiye önü bekleyiş, iş bırakma, toplu yürüyüş, hukuki takip","Durum / sonuç":"Devam ediyor","Son gelişme":"Farklı şantiyelerde ücret ve barınma temelli direnişler patlak veriyor"},{"Alan":"Adalet","Ne":"Cumartesi Anneleri","Nerede":"İstanbul Galatasaray Meydanı","Kim":"Kayıp yakınları ve hak savunucuları","Neden":"Gözaltında kaybedilenlerin akıbeti, faillerin yargılanması","Ne zaman / kaçıncı gün":"Her cumartesi","Nasıl":"Barışçıl adalet nöbeti","Durum / sonuç":"Devam ediyor","Son gelişme":"Her cumartesi saat 12.00’de adalet talebi sürüyor"},{"Alan":"Adalet","Ne":"Dilovası Katliamı Aileleri Adalet Nöbeti","Nerede":"Gebze Kent Meydanı","Kim":"Dilovası katliamı aileleri, avukatlar, DGD SEN ve destekçiler","Neden":"3’ü çocuk 7 işçinin ölümünde kamu görevlilerinin yargılanmaması, cezasızlık, davanın Kandıra’ya taşınması","Ne zaman / kaçıncı gün":"14 Haziran 2026’dan beri, 4. gün","Nasıl":"Her pazar adalet nöbeti, yürüyüş, oturma eylemi","Durum / sonuç":"Devam ediyor","Son gelişme":"21 Temmuz duruşmasına kadar her pazar 16.00-20.00 arası sürecek"},{"Alan":"Adalet / cezaevi","Ne":"Kuyu tipi hapishaneler kapatılsın mücadelesi","Nerede":"Türkiye geneli, S tipi, Y tipi ve yüksek güvenlikli hapishaneler","Kim":"Mahpuslar, TAYAD’lı aileler, insan hakları ve hukuk örgütleri","Neden":"Ağır tecrit, hücre izolasyonu, görüş ve sosyal hak gaspları, hasta mahpuslar","Ne zaman / kaçıncı gün":"Uzun süredir devam ediyor, gün mahpuslara göre değişiyor","Nasıl":"Açlık grevleri, ölüm orucu, ailelerin oturma eylemleri, hukuk ve insan hakları açıklamaları","Durum / sonuç":"Devam ediyor","Son gelişme":"Kuyu tipi hapishanelerin kapatılması, tecridin kaldırılması ve hasta mahpusların serbest bırakılması talep ediliyor"},{"Alan":"Adalet / cezaevi","Ne":"TAYAD’lı Aileler oturma eylemi","Nerede":"Ankara Kurtuluş Parkı / Kızılay hattı","Kim":"TAYAD’lı Aileler","Neden":"Kuyu tipi hapishaneler, tecrit, açlık grevindeki mahpusların talepleri, hasta mahpuslar","Ne zaman / kaçıncı gün":"Kaynaklarda 90. gün bilgisi geçiyor, gün yeniden teyit edilecek","Nasıl":"Oturma eylemi, basın açıklaması, aile nöbeti","Durum / sonuç":"Devam ediyor","Son gelişme":"Aileler kuyu tipi hapishanelerin kapatılması için nöbeti sürdürüyor"},{"Alan":"Adalet / kültür-sanat","Ne":"Grup Yorum emekçileri açlık grevi ve hak mücadelesi","Nerede":"Marmara 6 No’lu L Tipi / Silivri hattı","Kim":"Grup Yorum emekçileri, aileleri ve dayanışma kurumları","Neden":"Tecrit, konser yasakları, tutuklu üyeler, hapishane baskıları, kültür-sanat üzerindeki yasaklar","Ne zaman / kaçıncı gün":"18 Mayıs 2026’dan beri, 31. gün","Nasıl":"Süresiz açlık grevi, aile açıklamaları, dayanışma eylemleri","Durum / sonuç":"Devam ediyor","Son gelişme":"Can Kaba ve Hasan Basri Yıldız’ın açlık greviyle dayanışma hattı sürüyor"},{"Alan":"Ekoloji","Ne":"Giresun maden direnişi","Nerede":"Giresun, Görele Karlıbel / Tirebolu Sekü / Çanakçı hattı","Kim":"Köylüler, yaşam savunucuları","Neden":"Alagöz Maden’in sondaj ve maden girişimi, su kaynakları ve fındık bahçelerinin savunulması","Ne zaman / kaçıncı gün":"4 Nisan 2026’dan beri, 75. gün","Nasıl":"Yol kesme, iş makinesi durdurma, köy nöbeti, hukuki süreç","Durum / sonuç":"Devam ediyor","Son gelişme":"Mahkeme kararına rağmen sondaj girişimlerine karşı köylüler direniyor"},{"Alan":"Ekoloji","Ne":"Ordu ekoloji mücadelesi","Nerede":"Ordu, Aybastı / Korgan / Kabataş / yayla hattı","Kim":"Köylüler, ekoloji platformları","Neden":"Maden, enerji ve turizm projeleriyle yayla, su ve tarım alanlarının tehdit edilmesi","Ne zaman / kaçıncı gün":"Gün teyit edilecek","Nasıl":"Halk toplantıları, platformlaşma, açıklamalar","Durum / sonuç":"Devam ediyor","Son gelişme":"Ordu Ekoloji Platformu ve yerel halk hattı güçleniyor"},{"Alan":"Ekoloji","Ne":"Akbelen / İkizköy direnişi","Nerede":"Muğla Milas","Kim":"Köylüler, yaşam savunucuları","Neden":"Kömür madeni genişletmesi, zeytinlik, orman ve köy yaşamının savunulması","Ne zaman / kaçıncı gün":"Uzun soluklu, beşinci yıla giren mücadele","Nasıl":"Nöbet, dava takibi, köy savunması, kitlesel çağrılar","Durum / sonuç":"Devam ediyor","Son gelişme":"Akbelen hattı Türkiye ekoloji mücadelesinin merkezi başlıklarından biri olmayı sürdürüyor"},{"Alan":"Ekoloji","Ne":"Varto / Karlıova JES karşıtı mücadele","Nerede":"Muş Varto ve Bingöl Karlıova","Kim":"Köylüler, Varto Ekoloji Platformu, yaşam savunucuları","Neden":"JES projesi, su kaynakları, tarım, köy yaşamı ve doğa tahribatı","Ne zaman / kaçıncı gün":"Mart 2026’dan beri, yaklaşık 3. ay","Nasıl":"Direniş nöbeti, miting, köy toplantıları, platform çalışması","Durum / sonuç":"Devam ediyor","Son gelişme":"Varto ve Karlıova’da JES’e karşı halk direnişi büyüyor"},{"Alan":"Ekoloji","Ne":"Diyarbakır / Lice ekoloji direnişi","Nerede":"Diyarbakır Lice ve çevresi","Kim":"Yerel halk, kadınlar, ekoloji savunucuları","Neden":"Maden çalışmaları, doğa tahribatı, yaşam alanlarının gaspı","Ne zaman / kaçıncı gün":"Gün teyit edilecek","Nasıl":"Köy açıklamaları, nöbet, hukuki ve politik takip","Durum / sonuç":"Devam ediyor","Son gelişme":"Kadınların ve yerel halkın öncülük ettiği mücadele hattı sürüyor"},{"Alan":"Ekoloji","Ne":"Mardin ekoloji mücadelesi","Nerede":"Mardin ve ilçeleri","Kim":"Yerel halk, ekoloji örgütleri","Neden":"Maden, taş ocağı, enerji projeleri, tarım ve su varlıklarının korunması","Ne zaman / kaçıncı gün":"Gün teyit edilecek","Nasıl":"Halk toplantıları, açıklamalar, yerel takip","Durum / sonuç":"Devam ediyor / teyit edilecek","Son gelişme":"Ayrıntılı başlık ve gün bilgisi yerel kaynaklardan netleştirilecek"},{"Alan":"Ekoloji","Ne":"Mersin Arslanköy / Değirmençay mücadelesi","Nerede":"Mersin Toroslar / Yenişehir hattı","Kim":"Köylüler, MERÇED ve ekoloji savunucuları","Neden":"Boksit madeni genişletmesi, taş ocağı, su kaynakları, mera ve tarım alanlarının korunması","Ne zaman / kaçıncı gün":"Gün teyit edilecek","Nasıl":"Halk toplantısı, açıklama, ÇED süreci takibi, yerel örgütlenme","Durum / sonuç":"Devam ediyor","Son gelişme":"Köylüler maden ve taş ocağı projelerine karşı örgütleniyor"},{"Alan":"Ekoloji","Ne":"Şırnak ağaç kesimi ve ekokırım karşıtı mücadele","Nerede":"Şırnak, Besta / Cudi / Gabar hattı","Kim":"Şırnak Ekoloji Derneği, hukukçular, yerel halk","Neden":"Ağaç kesimleri, petrol ve maden aramaları, doğa tahribatı","Ne zaman / kaçıncı gün":"Yıllardır süren mücadele","Nasıl":"Hukuki başvuru, açıklama, imza kampanyası, ekoloji buluşmaları","Durum / sonuç":"Devam ediyor","Son gelişme":"Ağaç kesimlerine karşı hukuk ve kamuoyu mücadelesi sürüyor"},{"Alan":"Ekoloji","Ne":"Bingöl ekoloji mücadelesi","Nerede":"Bingöl, özellikle Karlıova hattı","Kim":"Köylüler, ekoloji savunucuları","Neden":"JES, maden, HES ve taş ocağı tehdidi","Ne zaman / kaçıncı gün":"Gün teyit edilecek","Nasıl":"Köy toplantıları, platform çalışmaları, açıklamalar","Durum / sonuç":"Devam ediyor","Son gelişme":"Karlıova hattı Varto’daki JES karşıtı mücadeleyle birlikte anılıyor"},{"Alan":"Ekoloji","Ne":"Çorum ekoloji mücadelesi","Nerede":"Çorum ve ilçeleri","Kim":"Yerel halk, ekoloji savunucuları","Neden":"Maden ve taş ocağı projeleri, tarım ve yaşam alanlarının savunulması","Ne zaman / kaçıncı gün":"Gün teyit edilecek","Nasıl":"Yerel açıklama, hukuki takip, halk toplantısı","Durum / sonuç":"Devam ediyor / teyit edilecek","Son gelişme":"Ayrıntılı proje ve gün bilgisi yerelden netleştirilecek"},{"Alan":"Dünya emek","Ne":"CNTE öğretmen grevi","Nerede":"Meksika, özellikle Mexico City","Kim":"CNTE öğretmenleri","Neden":"Maaş artışı, emeklilik sistemi, eğitim emekçilerinin hakları","Ne zaman / kaçıncı gün":"1 Haziran 2026’dan beri, 17. gün","Nasıl":"Ulusal grev, kamp, yürüyüş, yol kapatma","Durum / sonuç":"Devam ediyor","Son gelişme":"Dünya Kupası sürecinde öğretmen grevi ülke gündeminin merkezinde"},{"Alan":"Dünya emek / halk hareketi","Ne":"Bolivya protestoları","Nerede":"Bolivya geneli","Kim":"Madenciler, öğretmenler, çiftçiler, işçiler, ulaşım emekçileri","Neden":"Austerity, hayat pahalılığı, yakıt krizi, toprak/ipotek yasası ve ekonomik kriz","Ne zaman / kaçıncı gün":"Mayıs 2026’dan beri, haftalardır sürüyor","Nasıl":"Yol blokajları, kitlesel protestolar, grevler","Durum / sonuç":"Devam ediyor","Son gelişme":"Protestolar hükümete karşı geniş toplumsal tepkiye dönüşmüş durumda"},{"Alan":"Dünya emek","Ne":"Norveç petrol servis işçileri grevi","Nerede":"Norveç açık deniz petrol sektörü","Kim":"SAFE sendikası üyesi petrol servis işçileri","Neden":"Ücret görüşmelerinde anlaşmazlık","Ne zaman / kaçıncı gün":"15 Haziran 2026’dan beri, 3. gün","Nasıl":"Kısmi grev","Durum / sonuç":"Devam ediyor","Son gelişme":"154 işçi greve başladı, anlaşma olmazsa genişleme bekleniyor"},{"Alan":"Dünya emek","Ne":"INPEX Ichthys LNG grevi","Nerede":"Avustralya Darwin ve offshore tesisleri","Kim":"Offshore Alliance, AWU, MUA, ETU üyeleri","Neden":"Ücret, iş güvencesi, kariyer gelişimi, taşeronlaştırmaya karşı güvence","Ne zaman / kaçıncı gün":"2 Haziran’da başladı, 16 gün sürdü","Nasıl":"LNG tesisinde grev, yükleme yasakları","Durum / sonuç":"Kazanımla sonuçlandı","Son gelişme":"17 Haziran’da anlaşmayla sona erdi"},{"Alan":"Dünya emek","Ne":"BHP Port Hedland grev yetkisi","Nerede":"Avustralya Batı Avustralya","Kim":"ETU ve AMWU üyesi işçiler","Neden":"Ücret ve çalışma koşulları, eşitsiz sözleşmeler","Ne zaman / kaçıncı gün":"Grev oylaması yapıldı, fiili grev henüz başlamadı","Nasıl":"Grev yetkisi, beş gün bildirimle iş bırakma ihtimali","Durum / sonuç":"Beklemede","Son gelişme":"İşçiler grev lehine oy verdi, ihracat merkezi baskı altında"},{"Alan":"Dünya emek","Ne":"Çek kamu medya çalışanları grevi","Nerede":"Çekya","Kim":"Çek Televizyonu ve Çek Radyosu çalışanları","Neden":"Kamu medya finansmanının bütçeye bağlanması, bağımsızlığın zayıflatılması, işten çıkarma riski","Ne zaman / kaçıncı gün":"22 Haziran 2026 için ilan edildi","Nasıl":"Sembolik grev","Durum / sonuç":"Başlayacak","Son gelişme":"Yayınlar sürecek ama program akışında görünür protesto bekleniyor"},{"Alan":"Dünya emek","Ne":"Portekiz genel grevi","Nerede":"Portekiz geneli","Kim":"CGTP ve işçiler","Neden":"Emek reformu, güvencesizlik, ücretler, hayat pahalılığı","Ne zaman / kaçıncı gün":"3 Haziran 2026’da yapıldı","Nasıl":"Bir günlük genel grev, ulaşım ve kamu hizmetlerinde duruş","Durum / sonuç":"Sonuçlandı","Son gelişme":"Tren, uçuş, okul ve kamu hizmetleri etkilendi"},{"Alan":"Dünya emek","Ne":"İngiltere resident doktor grevi","Nerede":"İngiltere","Kim":"Doktorlar ve sendikaları","Neden":"Ücret erimesi, kadro ve eğitim pozisyonları, NHS çalışma koşulları","Ne zaman / kaçıncı gün":"Planlanan grev askıya alındı","Nasıl":"Üye oylaması öncesi grev tehdidi","Durum / sonuç":"Beklemede","Son gelişme":"Hükümet teklifi oylamaya sunuldu, reddedilirse grev dönebilir"},{"Alan":"Dünya emek","Ne":"Goldsmiths UCU süresiz grevi","Nerede":"İngiltere Londra","Kim":"Goldsmiths Üniversitesi UCU üyeleri","Neden":"İşten çıkarmalar, kesintiler, yüzde 100 ücret kesintisi ve fiili lokavt","Ne zaman / kaçıncı gün":"8 Haziran 2026’dan beri, 10. gün","Nasıl":"Süresiz grev, grev fonu, kampüs dayanışması","Durum / sonuç":"Devam ediyor","Son gelişme":"Yönetimin kesinti ve işten çıkarma programına karşı grev sürüyor"},{"Alan":"Dünya emek","Ne":"Kakao işçileri kısmi grevi","Nerede":"Güney Kore Pangyo","Kim":"Kakao Corp sendikası","Neden":"İş güvencesi, yeniden yapılandırma, yönetici merkezli ücret sistemi","Ne zaman / kaçıncı gün":"10 Haziran 2026’da kısmi grev","Nasıl":"4 saatlik grev ve miting","Durum / sonuç":"Sonuçlandı / takipte","Son gelişme":"Sendika iş güvencesi ve ücret sistemi reformu talep etti"},{"Alan":"Dünya emek","Ne":"Ecopetrol işçi mücadelesi","Nerede":"Kolombiya","Kim":"USO ve petrol işçileri","Neden":"TİS, ücret artışı, çalışma saatleri, sosyal haklar","Ne zaman / kaçıncı gün":"2 Haziran’da 24 saatlik grev, ardından anlaşma","Nasıl":"Grev ve TİS pazarlığı","Durum / sonuç":"Sonuçlandı","Son gelişme":"Altı yıllık toplu sözleşme anlaşması sağlandı"},{"Alan":"Dünya emek / maden","Ne":"Tenke Fungurume Mining grevi","Nerede":"Demokratik Kongo Cumhuriyeti","Kim":"TFM bakır-kobalt madeni işçileri","Neden":"İşçilerin dışlandığı TİS, düşük ücret, konut yardımı, sağlık hakkı","Ne zaman / kaçıncı gün":"1 Haziran 2026’dan beri, gün sahadan teyit edilecek","Nasıl":"Grev, üretim baskısı, işten çıkarma tehdidine karşı direnç","Durum / sonuç":"Devam ediyor / belirsiz","Son gelişme":"İşçiler ücret ve sağlık talepleri için stratejik bakır-kobalt madeninde greve çıktı"},{"Alan":"Dünya ekoloji / emek","Ne":"Oyu Tolgoi bakır ihracatı blokajı","Nerede":"Moğolistan, Gobi / Çin sınırı","Kim":"Radical Reform Movement ve yerel protestocular","Neden":"Rio Tinto ortaklı bakır-altın madeninden halka daha fazla gelir payı, maden zenginliği ve yoksulluk çelişkisi","Ne zaman / kaçıncı gün":"17 Haziran 2026, 1. gün","Nasıl":"Bakır ihracatı güzergahını bloke etme","Durum / sonuç":"Devam ediyor","Son gelişme":"Çin’e bakır konsantresi taşıyan yol kesildi"},{"Alan":"Dünya ekoloji","Ne":"Glencore karşıtı küresel eylem hattı","Nerede":"Kolombiya, Arjantin, DRC, Peru, Brezilya, Güney Afrika","Kim":"Maden bölgelerindeki topluluklar, ekoloji ve insan hakları örgütleri","Neden":"Kömür, bakır ve diğer madenlerde ekolojik yıkım, yerel halk hakları, emek sömürüsü","Ne zaman / kaçıncı gün":"AGM süreci etrafında Mayıs-Haziran hattı","Nasıl":"Uluslararası kampanya, şirket toplantısı protestosu","Durum / sonuç":"Devam eden kampanya","Son gelişme":"Glencore’a karşı çok ülkeli ekoloji ve adalet hattı sürüyor"},{"Alan":"Dünya ekoloji","Ne":"Rio Tinto karşıtı topluluk mücadeleleri","Nerede":"Londra AGM hattı, Moğolistan, Madagaskar, Sırbistan, Arizona bağlantıları","Kim":"Yerel topluluklar, insan hakları savunucuları","Neden":"Maden projelerinde su, toprak, yerli halk hakları ve ekolojik yıkım","Ne zaman / kaçıncı gün":"Uzun soluklu kampanya","Nasıl":"AGM protestosu, hukuki ve uluslararası savunuculuk","Durum / sonuç":"Devam ediyor","Son gelişme":"Rio Tinto projelerine karşı farklı coğrafyalardan ortak tepki sürüyor"},{"Alan":"Dünya ekoloji","Ne":"Maricunga lityum karşıtı mücadele","Nerede":"Şili Atacama / Salar de Maricunga","Kim":"Colla halkı ve yaşam savunucuları","Neden":"Lityum projesinin su kaynaklarına, ekosisteme ve yerli halk yaşamına tehdidi","Ne zaman / kaçıncı gün":"Uzun soluklu mücadele","Nasıl":"Hukuki ve topluluk temelli direniş","Durum / sonuç":"Devam ediyor","Son gelişme":"“Yeşil dönüşüm” adına lityum madenciliğine karşı su ve yaşam savunusu sürüyor"},{"Alan":"Dünya ekoloji","Ne":"Brezilya Lithium Valley direnişi","Nerede":"Brezilya Minas Gerais / Jequitinhonha","Kim":"Köylüler, yerli ve Afro-Brezilyalı topluluklar","Neden":"Lityum madenciliği, su, toz, konut, yoksulluk, yerel fayda sorunu","Ne zaman / kaçıncı gün":"Uzun soluklu mücadele","Nasıl":"Yerel itiraz, medya ve hukuk takibi","Durum / sonuç":"Devam ediyor","Son gelişme":"Lityum vadisi vaadinin yerel halka refah getirmediği eleştirisi büyüyor"},{"Alan":"Dünya ekoloji / iş güvenliği","Ne":"Sigma Lithium atık sahası krizi","Nerede":"Brezilya Grota do Cirilo madeni","Kim":"İşçiler, yerel halk, denetim kurumları","Neden":"Atık yığınlarında güvenlik riski, işçi ve yerel halk sağlığı","Ne zaman / kaçıncı gün":"Ocak 2026’dan beri takipte","Nasıl":"Denetim, kapatma kararı, hukuki ve toplumsal baskı","Durum / sonuç":"Devam eden takip","Son gelişme":"Brezilya Çalışma Bakanlığı bazı atık yığınlarını risk gerekçesiyle kapattı"},{"Alan":"Dünya ekoloji","Ne":"Nevada lityum madenciliği karşıtı mücadele","Nerede":"ABD Nevada","Kim":"Yerli halklar ve hak örgütleri","Neden":"Lityum projelerinde rıza, su, kutsal alan ve kültürel hak ihlalleri","Ne zaman / kaçıncı gün":"Uzun soluklu mücadele","Nasıl":"Raporlama, hukuki süreç, yerli hakları savunusu","Durum / sonuç":"Devam ediyor","Son gelişme":"Yerli halkların rızası olmadan ilerleyen projeler gündemde"}];
+    const GENERATED_AT = "2026-07-21 11:56:25 +03:00";
+    const FALLBACK_ROWS = [{"Alan":"İşçi Direnişi","Başlık":"Yolbulan Metal grevi","Yer":"Dörtyol / Hatay","Sendika/Dernek/Kurum":"Özçelik-İş","İşkolu":"Metal","Neden/Talepler":"Yolbulan Metal işçileri, sefalet ücreti dayatmasının son bulmasını, toplu iş sözleşmesinin kendi talepleri doğrultusunda imzalanmasını, insanca ücret ve sosyal hakların güvence altına alınmasını istiyor.","Başlangıç tarihi":"20.06.2024","Zaman/Gün":"20 Haziran 2024 tarihinden beri, 752. gün","Eylem biçimi":"Fabrika önünde grev ve grev nöbeti sürdürülüyor, dayanışma ziyaretleri gerçekleştiriliyor.","Durum":"Devam ediyor","Bilgiler":"Hatay Dörtyol’daki Yolbulan Metal işçileri, sefalet ücreti dayatmasına ve patronun toplu iş sözleşmesi masasındaki uzlaşmaz tutumuna karşı 20 Haziran 2024’ten beri grevde.İşçiler, insanca ücret, sosyal haklar ve taleplerini karşılayan bir sözleşme için fabrika önünde direniyor.","Medya":"","Konum":"https://maps.app.goo.gl/qL83sjnENX5u2ppt7","Yazı/ Haber/Yayın":"https://www.youtube.com/live/jVv2CionQ48?si=Irp2xxTXxezNoBiM\n https://www.youtube.com/live/Mexmm_Ljugs?si=c7C73acZQLPzsN3y"},{"Alan":"İşçi Direnişi","Başlık":"Temel Conta grevi","Yer":"Kemalpaşa ve Torbalı / İzmir","Sendika/Dernek/Kurum":"Petrol-İş","İşkolu":"Petrol, Kimya, Lastik ve Plastik","Neden/Talepler":"Temel Conta işçileri, sendikal yetkinin tanınmasını, toplu iş sözleşmesinin imzalanmasını, ücret ve çalışma koşullarının düzeltilmesini, grev kırıcılığının son bulmasını istiyor.","Başlangıç tarihi":"10.12.2024","Zaman/Gün":"10 Aralık 2024 tarihinden beri, 579. gün","Eylem biçimi":"Grev çadırı kuruluyor, fabrika önünde nöbet tutuluyor, makinelerin taşınmasına karşı fiili takip yapılıyor ve dava süreci izleniyor.","Durum":"Devam ediyor","Bilgiler":"Kemalpaşa’daki Temel Conta işçileri, sendikal yetkinin tanınması ve toplu iş sözleşmesinin imzalanması için 10 Aralık 2024’te greve çıktı. Petrol-İş üyesi işçiler, düşük ücretlere, ağır çalışma koşullarına ve patronun grev kırıcılığına karşı Kemalpaşa ve Torbalı’da direnişini sürdürüyor.","Medya":"","Konum":"https://maps.app.goo.gl/CcZhu3f9HG1hVHP1A","Yazı/ Haber/Yayın":"https://umutsen.org/index.php/2026/05/dayanisma-buyuyor-doruk-maden-iscileri-temel-conta-direnisini-ziyaret-etti/\n https://www.youtube.com/live/cqdca6NJod4?si=yUADDIoUFTBvocKo\n https://umutsen.org/index.php/2026/01/temel-conta-greviyle-dayanisma-icin-kamuoyuna-ve-chpye-cagrimizdir/\n https://umutsen.org/index.php/2026/01/400-gunu-geride-birakan-temel-conta-grevi-direnis-dayanismayla-buyuyor/\n https://umutsen.org/index.php/2025/04/iyi-ki-sendikalastik-iyi-ki-hakkimiza-sahip-cikiyoruz/\n https://umutsen.org/index.php/2024/12/temel-contada-grev-suruyor/\n https://umutsen.org/index.php/2026/04/bizim-birlesmekten-baska-sansimiz-yok/"},{"Alan":"İşçi Direnişi","Başlık":"TÜVTÜRK grevi","Yer":"İstanbul’daki TÜVTÜRK araç muayene istasyonları","Sendika/Dernek/Kurum":"DİSK/Nakliyat-İş","İşkolu":"Ulaştırma ve Araç Muayene","Neden/Talepler":"TÜVTÜRK işçileri, işverenin toplu iş sözleşmesi masasına oturmasını, sendikal hakların tanınmasını, sefalet ücreti dayatmasının ve grev kırıcılığının son bulmasını istiyor.","Başlangıç tarihi":"13.12.2025","Zaman/Gün":"13 Aralık 2025 tarihinden beri, 211. gün","Eylem biçimi":"İstasyon önlerinde grev yapılıyor, basın açıklamaları düzenleniyor ve dayanışma ziyaretleri gerçekleştiriliyor.","Durum":"Devam ediyor","Bilgiler":"TÜVTÜRK İstanbul işçileri, işverenin toplu iş sözleşmesi masasına oturmaması ve sendikal hakları tanımaması üzerine 13 Aralık 2025’te greve çıktı. Nakliyat-İş üyesi işçiler, sefalet ücreti dayatmasına, grev kırıcılığına ve sendika düşmanlığına karşı araç muayene istasyonlarında direniyor.","Medya":"","Konum":"https://maps.app.goo.gl/ZY1PRSsFS3uwF3G27","Yazı/ Haber/Yayın":"https://www.youtube.com/live/x60JGzB78B4?si=iLQRqcsiOKhyBHg5"},{"Alan":"İşçi Direnişi","Başlık":"Tapeten Mensucat grevi","Yer":"Sincan / Ankara","Sendika/Dernek/Kurum":"TEKSİF","İşkolu":"Tekstil","Neden/Talepler":"Tapeten Mensucat işçileri, sendikal yetkinin tanınmasını, toplu iş sözleşmesinin imzalanmasını, mobbing ve baskının son bulmasını, hijyen ve çalışma koşullarının düzeltilmesini istiyor.","Başlangıç tarihi":"04.09.2025","Zaman/Gün":"4 Eylül 2025 tarihinden beri, 311. gün","Eylem biçimi":"Fabrika önünde grev yapılıyor, basın açıklamaları düzenleniyor ve dayanışma ziyaretleri gerçekleştiriliyor.","Durum":"Devam ediyor","Bilgiler":"Sincan OSB’deki Tapeten Mensucat işçileri, sendikal yetkinin tanınması ve toplu iş sözleşmesinin imzalanması için 4 Eylül 2025’ten beri grevde. TEKSİF üyesi işçiler, mobbinge, baskıya, hijyen sorunlarına ve kötü çalışma koşullarına karşı fabrika önünde direniyor.","Medya":"","Konum":"https://maps.app.goo.gl/D4XTk9kuNsUwjKLv8","Yazı/ Haber/Yayın":"https://umutsen.org/index.php/2025/11/var-olacagiz/"},{"Alan":"İşçi Direnişi","Başlık":"Colin’s / Eroğlu Moda Tekstil grevi","Yer":"Avcılar / İstanbul, Tokat ve mağaza önleri","Sendika/Dernek/Kurum":"Öz İplik-İş","İşkolu":"Tekstil","Neden/Talepler":"Eroğlu Moda Tekstil işçileri, toplu iş sözleşmesinin kendi talepleri doğrultusunda imzalanmasını, ücret ve sosyal hakların iyileştirilmesini, sendikal haklarının tanınmasını istiyor.","Başlangıç tarihi":"01.05.2026","Zaman/Gün":"1 Mayıs 2026 tarihinden beri, 72. gün","Eylem biçimi":"Fabrika önünde grev yapılıyor, mağaza önlerinde eylemler ve basın açıklamaları düzenleniyor.","Durum":"Devam ediyor","Bilgiler":"Colin’s markasının üreticisi Eroğlu Moda Tekstil’de işçiler, toplu iş sözleşmesinin tıkanmasına ve düşük ücret dayatmasına karşı 1 Mayıs 2026’da greve çıktı. Öz İplik-İş üyesi işçilerin mücadelesi, fabrika önlerinden Colin’s mağazalarının önüne taşındı.","Medya":"","Konum":"https://maps.app.goo.gl/eyZet7juazJedonR8","Yazı/ Haber/Yayın":""},{"Alan":"İşçi Direnişi","Başlık":"DIGEL Tekstil grevi","Yer":"Ege Serbest Bölgesi / İzmir","Sendika/Dernek/Kurum":"TEKSİF","İşkolu":"Tekstil","Neden/Talepler":"DIGEL Tekstil işçileri, işten atılan işçilerin işe iade edilmesini, sendikal yetkinin tanınmasını, ücret ve çalışma koşullarının düzeltilmesini, mobbing ve baskının son bulmasını istiyor.","Başlangıç tarihi":"17.01.2025","Zaman/Gün":"17 Ocak 2025 tarihinden beri, 541. gün","Eylem biçimi":"Serbest bölge önünde direniş sürdürülüyor, dava süreci takip ediliyor ve dayanışma eylemleri gerçekleştiriliyor.","Durum":"Devam ediyor","Bilgiler":"Ege Serbest Bölgesi’ndeki DIGEL Tekstil işçileri, düşük ücretlere, mobbinge, kötü çalışma koşullarına ve sendikal baskıya karşı 17 Ocak 2025’te direnişe başladı. TEKSİF’in yetkisinin kesinleşmesinin ardından işçiler, toplu iş sözleşmesi ve işe iade talepleriyle mücadeleyi sürdürüyor.","Medya":"","Konum":"https://maps.app.goo.gl/t6sahuup8jVVv8Me7","Yazı/ Haber/Yayın":"https://www.youtube.com/live/gQHMuhB_5oU?si=IRtklNbD4XMdWjQT\n https://umutsen.org/index.php/2025/06/teksif-sendikasi-digel-tekstilde-yasanan-cinsel-tacizlere-karsi-aciklamada-bulundu/\n https://umutsen.org/index.php/2025/04/direnen-digel-iscisi-isci-sinifinin-umudu/\n https://umutsen.org/index.php/2017/07/digel-tekstilde-kadin-iscilere-cinsel-taciz-icin-erkek-patronlar-isbirligi-yapiyor/"},{"Alan":"İşçi Direnişi","Başlık":"Barta Tekstil direnişi","Yer":"İzmir","Sendika/Dernek/Kurum":"Dev Tekstil","İşkolu":"Tekstil","Neden/Talepler":"Barta Tekstil işçileri, kod oyunlarıyla tazminatsız işten atılan işçilerin işe iade edilmesini, ücret ve tazminat alacaklarının ödenmesini, sendikal baskının son bulmasını istiyor.","Başlangıç tarihi":"07.04.2026","Zaman/Gün":"7 Nisan 2026 tarihinden beri, 96. gün","Eylem biçimi":"Fabrika önünde nöbet tutuluyor ve basın açıklamaları düzenleniyor.","Durum":"Devam ediyor","Bilgiler":"Barta Tekstil işçileri, kod oyunlarıyla tazminatsız işten atılmaya ve sendikal baskıya karşı fabrika önünde direniyor. Dev Tekstil üyesi işçiler, işe iade ile ücret ve tazminat alacaklarının ödenmesini talep ediyor.","Medya":"","Konum":"https://maps.app.goo.gl/JPXc6yvbbMgVaGgHA","Yazı/ Haber/Yayın":"https://www.facebook.com/share/p/1GeocgHLsZ/"},{"Alan":"İşçi Direnişi","Başlık":"Gezer Tekstil / Gezer Terlik grevi","Yer":"Bolu ve Esenyurt / İstanbul","Sendika/Dernek/Kurum":"TEKSİF","İşkolu":"Tekstil, Deri ve Ayakkabı","Neden/Talepler":"Gezer işçileri, sendika düşmanlığının ve işten atmaların son bulmasını, işten atılan işçilerin işe iade edilmesini, ücret ve tazminat alacaklarının ödenmesini istiyor.","Başlangıç tarihi":"24.11.2025","Zaman/Gün":"24 Kasım 2025 tarihinden beri, 230. gün","Eylem biçimi":"Fabrika önünde eylemler yapılıyor, sendikal örgütlenme çalışmaları yürütülüyor ve dava süreci takip ediliyor.","Durum":"Devam ediyor","Bilgiler":"Gezer işçileri, sendika düşmanlığına, işten atmalara ve ücret gasplarına karşı Bolu ve Esenyurt’ta mücadele ediyor. TEKSİF üyesi işçiler, işten atılanların işe iadesini, alacakların ödenmesini ve örgütlenme haklarının tanınmasını istiyor.","Medya":"","Konum":"https://maps.app.goo.gl/wcgiA4i9dPg7ddhh7","Yazı/ Haber/Yayın":"https://www.facebook.com/share/p/1D7B368vgK/"},{"Alan":"İşçi Direnişi","Başlık":"Şişli Belediyesi işçileri direnişi","Yer":"Şişli / İstanbul","Sendika/Dernek/Kurum":"Şişli Belediyesi ve belediye şirket işçileri","İşkolu":"Belediye Hizmetleri","Neden/Talepler":"Şişli Belediyesi işçileri, işten atmaların durdurulmasını, geciken ücretlerin ödenmesini, toplu iş sözleşmesi hükümlerinin uygulanmasını, norm kadro sorununun çözülmesini istiyor.","Başlangıç tarihi":"12.01.2026","Zaman/Gün":"12 Ocak 2026 tarihinden beri, 181. gün","Eylem biçimi":"Belediye önünde basın açıklamaları, oturma eylemleri ve iş bırakma eylemleri yapılıyor.","Durum":"Devam ediyor","Bilgiler":"Şişli Belediyesi ve belediye şirket işçileri, işten atmalara, geciken ücretlere ve toplu iş sözleşmesi hükümlerinin uygulanmamasına karşı mücadele ediyor. İşçiler, belediyedeki mali ve idari krizin faturasının kendilerine kesilmesini kabul etmiyor.","Medya":"","Konum":"https://maps.app.goo.gl/5juLUm4qSZFu2V9e7","Yazı/ Haber/Yayın":"https://umutsen.org/index.php/2022/02/isciler-yaziyor-belediyelerde-isci-kiyimi-var/\n https://umutsen.org/index.php/2022/09/belediye-iscileri-direniyor-kadim-firat/\n https://umutsen.org/index.php/2024/02/direnis-bulteni-sayi-20/"},{"Alan":"İşçi Direnişi","Başlık":"Turan Çil ve Cem Devran Çiftçi işe iade direnişi","Yer":"Beşiktaş Belediyesi / İstanbul","Sendika/Dernek/Kurum":"Beşiktaş Belediyesi işçileri","İşkolu":"Belediye Hizmetleri","Neden/Talepler":"Turan Çil ve Cem Devran Çiftçi, düzensiz ücret ödemelerine itiraz ettikleri için yapılan işten çıkarmaların geri alınmasını, işe iade edilmelerini, ücretlerin düzenli ödenmesini ve iş güvencelerinin sağlanmasını istiyor.","Başlangıç tarihi":"16.12.2025","Zaman/Gün":"16 Aralık 2025 tarihinden beri, 208. gün; 7 Temmuz 2026’da açlık grevine dönüştü","Eylem biçimi":"Belediye önünde direniş sürdürülüyor, basın açıklamaları yapılıyor ve açlık grevi gerçekleştiriliyor.","Durum":"Devam ediyor","Bilgiler":"Beşiktaş Belediyesi işçileri Turan Çil ve Cem Devran Çiftçi, düzensiz ücret ödemelerine itiraz ettikleri için işten çıkarılmalarına karşı işe iade talebiyle direniyor. Belediye önündeki direniş, 7 Temmuz 2026’da açlık grevine dönüştü.","Medya":"","Konum":"https://maps.app.goo.gl/BcongDRbh6swc2GQ8","Yazı/ Haber/Yayın":"https://www.youtube.com/live/_0-CXh7sB9Y?si=eP1b1a-dSY8t8Sum"},{"Alan":"İşçi Direnişi","Başlık":"İBB Ağaç AŞ işçileri grevi","Yer":"İstanbul","Sendika/Dernek/Kurum":"Ağaç ve Peyzaj AŞ işçileri","İşkolu":"Belediye Hizmetleri","Neden/Talepler":"İBB Ağaç AŞ işçileri, güvenlik soruşturması gerekçesiyle yapılan işten çıkarmaların geri alınmasını, işten atılan işçilerin işe iade edilmesini, iş güvencesinin sağlanmasını ve ayrımcı uygulamaların son bulmasını istiyor.","Başlangıç tarihi":"30.04.2026","Zaman/Gün":"30 Nisan 2026 tarihinden beri, 73. gün; 7 Temmuz 2026’da Merter Ek Hizmet Binası’nda oturma eylemi başladı","Eylem biçimi":"Saraçhane’de ve kurum önünde basın açıklamaları ile oturma eylemleri yapılıyor, dayanışma ziyaretleri gerçekleştiriliyor.","Durum":"Devam ediyor","Bilgiler":"İBB’ye bağlı Ağaç ve Peyzaj AŞ işçileri, güvenlik soruşturması gerekçesiyle yapılan işten atmalara karşı direniyor. İşçiler, işe iade ve güvenceli çalışma talepleriyle Saraçhane’de ve kurum önlerinde eylemlerini sürdürüyor.","Medya":"","Konum":"https://maps.app.goo.gl/G8sHsJZstuXmbGcN8","Yazı/ Haber/Yayın":"https://umutsen.org/index.php/2022/09/isci-sinifinin-direnis-bellegi-05-11-eylul-2022/\n https://umutsen.org/index.php/2022/10/haftalik-direnis-bulteni-03-10-09-10-2022/"},{"Alan":"İşçi Direnişi","Başlık":"Mersin Liman işçileri grevi","Yer":"Mersin Limanı","Sendika/Dernek/Kurum":"TÜMTİS","İşkolu":"Liman, Depolama ve Taşımacılık","Neden/Talepler":"Mersin Limanı işçileri, işten atılan işçilerin işe iade edilmesini, taşeron düzeninin ve sendikal baskının son bulmasını, iş güvencesi ile sendikal haklarının tanınmasını istiyor.","Başlangıç tarihi":"31.12.2025","Zaman/Gün":"31 Aralık 2025 tarihinden beri, 193. gün","Eylem biçimi":"Liman kapısı önünde direniş sürdürülüyor, ailelerle birlikte eylemler yapılıyor, adliye önünde ve kamuoyuna yönelik basın açıklamaları düzenleniyor.","Durum":"Devam ediyor","Bilgiler":"Mersin Limanı’nda TÜMTİS üyesi işçiler, taşeron firma üzerinden yapılan işten atmalara ve sendikal hak gasplarına karşı liman kapısı önünde direniyor. 180’i aşkın işçi, işe iade, iş güvencesi ve sendikal haklarının tanınmasını talep ediyor.","Medya":"","Konum":"https://maps.app.goo.gl/hKfhtP7Zx4Uib1b69","Yazı/ Haber/Yayın":"https://umutsen.org/index.php/2017/12/mersin-limaninda-isten-atilan-liman-iscileri-liman-is-uyelik-basvurumuzu-reddetti-simdi-sendika-baskaninin-akrabalari-yerimize-calisiyor/\n https://umutsen.org/index.php/2017/12/liman-iscileri-isten-atildi-liman-is-sahip-cikmadi/"},{"Alan":"İşçi Direnişi","Başlık":"Bursagaz grevi","Yer":"Bursa","Sendika/Dernek/Kurum":"DİSK/Enerji-Sen","İşkolu":"Enerji","Neden/Talepler":"Bursagaz işçileri, sendikal yetkiye yapılan itirazın geri çekilmesini, toplu iş sözleşmesi sürecinin başlatılmasını, işten atılan 12 işçinin işe iade edilmesini istiyor.","Başlangıç tarihi":"10.06.2026","Zaman/Gün":"10 Haziran 2026 tarihinden beri, 32. gün","Eylem biçimi":"Aksa Doğalgaz Bursa Bölge Müdürlüğü önünde direniş sürdürülüyor, kent eylemleri yapılıyor ve dayanışma çağrıları gerçekleştiriliyor.","Durum":"Devam ediyor","Bilgiler":"Bursagaz işçileri, DİSK/Enerji-Sen’de örgütlenerek toplu iş sözleşmesi hakkı kazandı. İşveren ve TES-İş’in yetki itirazıyla sürecin tıkanması ve örgütlenmede öne çıkan 12 işçinin işten atılması üzerine işçiler, işe iade ve yetki itirazının geri çekilmesi talebiyle direniyor.","Medya":"","Konum":"https://maps.app.goo.gl/XFyLZvBeCtp4UPda9","Yazı/ Haber/Yayın":"https://www.youtube.com/live/yBHIg6BfQg8?si=HcVdtTbXJ0xv1uPg"},{"Alan":"İşçi Direnişi","Başlık":"Trendyol Lojistik Denizli grevi","Yer":"Denizli","Sendika/Dernek/Kurum":"DİSK/İletişim-İş","İşkolu":"Depo ve Lojistik","Neden/Talepler":"Trendyol Lojistik işçileri, işten atılan işçilerin işe iade edilmesini, prim ve vardiya düzeninin adil biçimde kurulmasını, performans baskısının son bulmasını, mola, terfi ve haberleşme haklarının güvence altına alınmasını istiyor.","Başlangıç tarihi":"16.06.2026","Zaman/Gün":"16 Haziran 2026 tarihinden beri, 26. gün","Eylem biçimi":"Dağıtım merkezi önünde direniş sürdürülüyor, iş bırakma eylemi ve basın açıklaması yapılıyor.","Durum":"Devam ediyor","Bilgiler":"Denizli’de GHZ Lojistik ve Trendyol Lojistik işçileri, prim ve vardiya düzenindeki adaletsizliğe, performans baskısına, mola ve terfi haklarının gasbedilmesine karşı 11 maddelik talep açıkladı. 30’dan fazla işçinin 04 koduyla işten çıkarılmasının ardından mücadele, işe iade ve sendikal haklar için direnişe dönüştü.","Medya":"","Konum":"https://maps.app.goo.gl/vtUxXtLLZpKrTyCQ9","Yazı/ Haber/Yayın":""},{"Alan":"İşçi Direnişi","Başlık":"Özel sektör öğretmenleri Ankara direnişi","Yer":"Ankara ve farklı kentler","Sendika/Dernek/Kurum":"Özel Sektör Öğretmenleri Sendikası","İşkolu":"Eğitim","Neden/Talepler":"Özel sektör öğretmenleri, taban maaş hakkının tanınmasını, güvenceli çalışma koşullarının sağlanmasını, 10 aylık sözleşme dayatmasının kaldırılmasını, mülakat mağduriyetinin giderilmesini istiyor.","Başlangıç tarihi":"14.06.2026","Zaman/Gün":"14 Haziran 2026 tarihinden beri, 28. gün; açlık grevi 13 gün sürdü ve 27 Haziran 2026’da sonlandırıldı","Eylem biçimi":"Ankara buluşması düzenleniyor, MEB önünde eylemler yapılıyor, açlık grevi ve yürüyüş gerçekleştiriliyor.","Durum":"Devam ediyor","Bilgiler":"Özel sektör öğretmenleri, taban maaş, güvenceli çalışma, 10 aylık sözleşme dayatmasının kaldırılması ve mülakat mağduriyetinin giderilmesi için Ankara’da eylem yaptı. 13 gün süren açlık grevi 27 Haziran 2026’da sonlandırıldı, öğretmenlerin talepleri için mücadelesi sürüyor.","Medya":"","Konum":"https://maps.app.goo.gl/ozgP8DA7bEnZVfus8","Yazı/ Haber/Yayın":"https://www.youtube.com/live/N266Icfw9PU?si=jNWHCtSgDM5iqCJd"},{"Alan":"Kayıp Yakınları","Başlık":"Cumartesi Anneleri / İnsanları adalet mücadelesi","Yer":"Galatasaray Meydanı / İstanbul","Sendika/Dernek/Kurum":"Cumartesi Anneleri / İnsanları","İşkolu":"Bağımsız","Neden/Talepler":"Cumartesi Anneleri ve Cumartesi İnsanları, gözaltında kaybedilenlerin akıbetinin açıklanmasını, faillerin yargılanmasını, cezasızlık politikasının son bulmasını istiyor.","Başlangıç tarihi":"27.05.1995","Zaman/Gün":"27 Mayıs 1995 tarihinden beri, 1111.  gün; her cumartesi sürüyor","Eylem biçimi":"Oturma eylemi ve basın açıklaması yapılıyor, davalar ile kayıp dosyaları takip ediliyor.","Durum":"Devam ediyor","Bilgiler":"Cumartesi Anneleri / İnsanları, gözaltında kaybedilenlerin akıbetinin açıklanması ve faillerin yargılanması için Galatasaray Meydanı’ndaki mücadelesini sürdürüyor. Her cumartesi yapılan oturma eylemi ve basın açıklamalarında devletin inkâr ve cezasızlık politikasına karşı hakikat ve adalet talebi yükseltiliyor.","Medya":"","Konum":"https://maps.app.goo.gl/A6QrytMzG6SsX3WX7","Yazı/ Haber/Yayın":"https://www.facebook.com/share/p/1EHw5boQRb/ https://www.facebook.com/share/p/1C9LS347hN/"},{"Alan":"İş Cinayeti Davası","Başlık":"Dilovası İşçi Katliamı Davası ve Adalet Nöbeti","Yer":"Gebze Kent Meydanı / Kocaeli","Sendika/Dernek/Kurum":"Dilovası İşçi Katliamı Aileleri ve DGD-SEN","İşkolu":"Bağımsız","Neden/Talepler":"Dilovası İşçi Katliamı aileleri, 3’ü çocuk 7 işçinin ölümünde patronlar ve kamu görevlileri dahil tüm sorumluların yargılanmasını, cezasızlığın son bulmasını istiyor.","Başlangıç tarihi":"08.11.2025","Zaman/Gün":"14 Haziran 2026 tarihinden beri, 28. gün; nöbet her pazar sürüyor","Eylem biçimi":"Adalet nöbeti tutuluyor, yürüyüş ve oturma eylemleri yapılıyor, basın açıklamaları düzenleniyor ve duruşmalar takip ediliyor.","Durum":"Devam ediyor","Bilgiler":"Dilovası Ravive Kozmetik işçi katliamında yakınlarını kaybeden aileler, 3’ü çocuk 7 işçinin ölümünün hesabını sormak için Gebze Kent Meydanı’nda adalet nöbeti tutuyor. Aileler, patronlar ve kamu görevlileri dahil tüm sorumluların yargılanmasını ve cezasızlığın son bulmasını talep ediyor. Nöbet, 21 Temmuz 2026’daki duruşmaya kadar her pazar sürüyor.","Medya":"","Konum":"https://maps.app.goo.gl/Eru8fqXRSjwH6FCF8","Yazı/ Haber/Yayın":"https://e-komite.com/2026/dilovasi-icin-adalet-herkes-icin-adalet/  https://umutsen.org/index.php/2026/06/kaderse-patronlar-olsun-dilovasi-icin-adalet-herkes-icin-adalet/\n https://umutsen.org/index.php/2026/03/dilovasindaki-canlarin-hesabi/\n https://umutsen.org/index.php/2026/03/ev-ici-emekten-guvencesiz-istihdama-dilovasi-katliami/\n https://umutsen.org/index.php/2025/11/dilovasinda-parfum-imalathanesi-yangini-goz-gore-gore-gelen-katliam/\n https://umutsen.org/index.php/2026/05/ben-cicek-verdim-toprak-altina-bunlar-burada-gobek-atiyor/\n https://umutsen.org/index.php/2026/04/bu-sermaye-duzenine-daha-ne-kadar-kan-lazim/\n https://umutsen.org/index.php/2025/11/turkiye-isci-mezarligi-is-cinayeti-rejiminin-olusumu-kansu-yildirim/\n https://www.youtube.com/live/KE6H9DXCe00?si=NBk6BkQkvLf949BT"},{"Alan":"Kayıp Yakınları","Başlık":"Kartalkaya Grand Kartal Otel İş Cinayeti Davası","Yer":"Kartalkaya / Bolu","Sendika/Dernek/Kurum":"Kartalkaya katliamında yakınlarını kaybeden aileler ve dava avukatları","İşkolu":"Bağımsız","Neden/Talepler":"Kartalkaya’da yakınlarını kaybeden aileler, otel yönetimiyle birlikte denetim ve ruhsat sorumluluğu bulunan tüm kamu görevlilerinin yargılanmasını, cezasızlığın son bulmasını, verilen kararların eksiksiz uygulanmasını istiyor.","Başlangıç tarihi":"21.01.2025","Zaman/Gün":"21 Ocak 2025 tarihinden beri, 537. gün; adalet ve dava takibi sürüyor","Eylem biçimi":"Duruşmalar takip ediliyor, adliye önünde basın açıklamaları ve adalet yürüyüşleri düzenleniyor.","Durum":"Devam ediyor","Bilgiler":"Kartalkaya Grand Kartal Otel’de 34’ü çocuk 78 kişinin yaşamını yitirdiği yangının ardından aileler, otel yöneticileri ile denetim ve ruhsat sorumluluğu bulunan kamu görevlilerinin tamamının yargılanması için mücadele ediyor. Ana davada karar verilmiş olsa da kamu görevlileri hakkındaki soruşturma ve ailelerin cezasızlığa karşı adalet mücadelesi sürüyor.","Medya":"","Konum":"https://maps.app.goo.gl/P4HCHExNtLxNxR776","Yazı/ Haber/Yayın":"https://www.facebook.com/share/v/198jteMXKg/"},{"Alan":"İş Cinayeti Davası","Başlık":"Hendek Havai Fişek Fabrikası İş Cinayeti Davası","Yer":"Hendek / Sakarya","Sendika/Dernek/Kurum":"Hendek işçi katliamında yakınlarını kaybeden aileler ve dava avukatları","İşkolu":"Bağımsız","Neden/Talepler":"Hendek işçi katliamında yakınlarını kaybeden aileler, fabrika sahipleriyle denetim sorumluluğu bulunan kamu görevlilerinin yargılanmasını, olası kast hükümlerinin uygulanmasını, cezasızlığın son bulmasını istiyor.","Başlangıç tarihi":"03.07.2020","Zaman/Gün":"3 Temmuz 2020 tarihinden beri, 2200. gün; adalet mücadelesi sürüyor","Eylem biçimi":"Duruşmalar takip ediliyor, fabrika önünde anmalar ve basın açıklamaları yapılıyor.","Durum":"Devam ediyor","Bilgiler":"Hendek’teki Büyük Coşkunlar Havai Fişek Fabrikası’nda 7 işçinin yaşamını yitirdiği patlamanın ardından aileler, patronların ve denetim sorumluluğu bulunan kamu görevlilerinin hesap vermesi için mücadele ediyor. Aradan altı yıl geçmesine rağmen cezasızlık sona ermedi. Ailelerin dava ve adalet mücadelesi sürüyor.","Medya":"","Konum":"https://maps.app.goo.gl/TPqvVRcCHTViyMUo6","Yazı/ Haber/Yayın":"https://umutsen.org/index.php/2022/03/mervenur-yilmaz-kamu-sermaye-siyaset-yargi-el-ele-isciler-olume/"},{"Alan":"İş Cinayeti Davası","Başlık":"Gayrettepe Gece Kulübü İş Cinayeti Davası","Yer":"Beşiktaş / İstanbul","Sendika/Dernek/Kurum":"Gayrettepe Katliamı Kayıp Yakınları ve dava avukatları","İşkolu":"Bağımsız","Neden/Talepler":"Gayrettepe işçi katliamında yakınlarını kaybeden aileler, 29 işçinin ölümünde patronların ve ruhsat ile denetim sorumluluğu bulunan kamu görevlilerinin yargılanmasını, tüm sorumluların ortaya çıkarılmasını, cezasızlığın son bulmasını istiyor.","Başlangıç tarihi":"02.04.2024","Zaman/Gün":"2 Nisan 2024 tarihinden beri, 831. gün; dava 30 Ekim 2026’ya ertelendi","Eylem biçimi":"Duruşmalar takip ediliyor, adliye önünde basın açıklamaları yapılıyor ve dayanışma çağrıları gerçekleştiriliyor.","Durum":"Devam ediyor","Bilgiler":"Gayrettepe’de tadilat sırasında çıkan yangında 29 işçinin yaşamını yitirmesinin ardından kayıp yakınları, patronların ve denetim sorumluluğu bulunan kamu kurumlarının yargılanması için mücadele ediyor. 10 Temmuz 2026’daki duruşmada tutuklu sanıkların tutukluluk hallerinin devamına karar verildi. Dava 30 Ekim 2026’ya ertelendi.","Medya":"","Konum":"https://maps.app.goo.gl/ToqRgj7CpY2DLqmE6","Yazı/ Haber/Yayın":"https://e-komite.com/2025/silivriden-caglayana-adalet-yolu-gayrettepeye-cikacak-mi/"},{"Alan":"Hapishane Direnişi","Başlık":"Kuyu tipi hapishaneler kapatılsın mücadelesi","Yer":"Türkiye geneli, S tipi, Y tipi ve yüksek güvenlikli hapishaneler","Sendika/Dernek/Kurum":"Mahpuslar, TAYAD’lı Aileler ve hukuk örgütleri","İşkolu":"Bağımsız","Neden/Talepler":"Mahpuslar ve aileleri, ağır tecrit ve hücre izolasyonunun kaldırılmasını, görüş ve sosyal hak gasplarının son bulmasını, hasta mahpusların serbest bırakılmasını, kuyu tipi hapishanelerin kapatılmasını istiyor.","Başlangıç tarihi":"","Zaman/Gün":"Mahpus, hapishane ve eylem türüne göre farklı başlangıç tarihleri bulunuyor","Eylem biçimi":"Açlık grevleri ve ölüm oruçları sürdürülüyor, aile nöbetleri ve basın açıklamaları yapılıyor, dava süreçleri takip ediliyor.","Durum":"Devam ediyor","Bilgiler":"Mahpuslar, aileler ve hak örgütleri, S tipi, Y tipi ve yüksek güvenlikli hapishanelerde ağırlaştırılan tecrit rejimine karşı mücadele ediyor. Hücre izolasyonunun, görüş ve sosyal hak gasplarının son bulması, hasta mahpusların serbest bırakılması ve kuyu tipi hapishanelerin kapatılması talep ediliyor.","Medya":"","Konum":"https://maps.app.goo.gl/RNjBydrJ2qXFTbyn8","Yazı/ Haber/Yayın":"https://www.facebook.com/share/v/1C2yEcUqTN/"},{"Alan":"Hapishane Direnişi","Başlık":"TAYAD’lı Aileler oturma eylemi","Yer":"Ankara Kurtuluş Parkı ve Kızılay","Sendika/Dernek/Kurum":"TAYAD’lı Aileler","İşkolu":"Bağımsız","Neden/Talepler":"TAYAD’lı Aileler, kuyu tipi hapishanelerin kapatılmasını, tecridin kaldırılmasını, açlık grevindeki ve ölüm orucundaki mahpusların taleplerinin karşılanmasını istiyor.","Başlangıç tarihi":"","Zaman/Gün":"2026’da Ankara Kurtuluş Parkı ve Kızılay’daki dönemsel oturma eylemleri sürüyor","Eylem biçimi":"Oturma eylemi ve basın açıklaması yapılıyor, aile nöbeti tutuluyor.","Durum":"Devam ediyor","Bilgiler":"TAYAD’lı Aileler, Ankara’da kuyu tipi hapishanelere, tecrit uygulamalarına ve hasta mahpusların ölüme terk edilmesine karşı oturma eylemleri düzenliyor. Aileler, açlık grevindeki ve ölüm orucundaki mahpusların taleplerinin karşılanmasını ve tecridin kaldırılmasını istiyor.","Medya":"","Konum":"https://maps.app.goo.gl/kcekS5czChQJN4EBA","Yazı/ Haber/Yayın":"https://www.facebook.com/share/p/1LVLNqZi24/  https://www.facebook.com/share/p/1JBmgkXTEw/"},{"Alan":"Hapishane Direnişi","Başlık":"Grup Yorum emekçileri açlık grevi","Yer":"Marmara 6 No’lu L Tipi Hapishanesi / Silivri","Sendika/Dernek/Kurum":"Grup Yorum ve TAYAD’lı Aileler","İşkolu":"Bağımsız","Neden/Talepler":"Grup Yorum emekçileri ve TAYAD’lı Aileler, tecridin ve hapishane baskılarının son bulmasını, konser yasaklarının kaldırılmasını, tutuklu Grup Yorum üyeleriyle politik tutsakların haklarının tanınmasını istiyor.","Başlangıç tarihi":"18.05.2026","Zaman/Gün":"18 Mayıs 2026 tarihinden beri, 55. gün","Eylem biçimi":"Süresiz açlık grevi sürdürülüyor, aileler tarafından açıklamalar yapılıyor ve dayanışma eylemleri gerçekleştiriliyor.","Durum":"Devam ediyor","Bilgiler":"Grup Yorum emekçisi Can Kaba ve TAYAD’lı Aileler’den Hasan Basri Yıldız, tecride, konser yasaklarına ve hapishane baskılarına karşı 18 Mayıs 2026’da süresiz açlık grevine başladı. Aileler ve dayanışma kurumları, taleplerin karşılanması için eylemlerini sürdürüyor.","Medya":"","Konum":"https://maps.app.goo.gl/RmWGNW8mWuUejiMT6","Yazı/ Haber/Yayın":"https://www.facebook.com/share/p/1CtBzFKe89/"},{"Alan":"Ekoloji Direnişi","Başlık":"Giresun maden direnişi","Yer":"Görele Karlıbel, Tirebolu Sekü ve Çanakçı / Giresun","Sendika/Dernek/Kurum":"Köylüler ve yaşam alanı savunucuları","İşkolu":"Bağımsız","Neden/Talepler":"Görele, Tirebolu ve Çanakçı’daki köylüler, Alagöz Maden’in sondaj ve maden faaliyetlerinin durdurulmasını, su kaynaklarının, fındık bahçelerinin ve yaşam alanlarının korunmasını istiyor.","Başlangıç tarihi":"04.04.2026","Zaman/Gün":"4 Nisan 2026 tarihinden beri, 99. gün","Eylem biçimi":"Yollar kesiliyor, iş makineleri durduruluyor, köy nöbeti tutuluyor ve dava süreci takip ediliyor.","Durum":"Devam ediyor","Bilgiler":"Görele, Tirebolu ve Çanakçı’daki köylüler, Alagöz Maden’in sondaj ve maden faaliyetlerine karşı su kaynaklarını, fındık bahçelerini ve yaşam alanlarını savunuyor. Mahkeme kararlarına rağmen süren şirket girişimlerine karşı köylüler yol kesme, iş makinesi durdurma ve köy nöbetleriyle direniyor.","Medya":"","Konum":"https://maps.app.goo.gl/LebF4e9t9wz53FY89","Yazı/ Haber/Yayın":"https://umutsen.org/index.php/2026/01/giresunun-dusmani-alagoz-defol/\n https://umutsen.org/index.php/2025/06/yeni-torba-yasa-ve-koylulerin-mucadelesi/"},{"Alan":"Ekoloji Direnişi","Başlık":"Ordu ekoloji mücadelesi","Yer":"Aybastı, Korgan, Kabataş ve yayla alanları / Ordu","Sendika/Dernek/Kurum":"Köylüler, ekoloji platformları ve yaşam alanı savunucuları","İşkolu":"Bağımsız","Neden/Talepler":"Ordu’daki köylüler ve yaşam alanı savunucuları, maden, enerji ve turizm projelerinin durdurulmasını, yaylaların, su kaynaklarının, tarım alanlarının ve köy yaşamının korunmasını istiyor.","Başlangıç tarihi":"","Zaman/Gün":"Sürekli ve çok merkezli mücadele; proje ve ilçe bazında başlangıçlar değişiyor","Eylem biçimi":"Halk toplantıları düzenleniyor, yerel platform çalışmaları yürütülüyor ve basın açıklamaları yapılıyor.","Durum":"Devam ediyor","Bilgiler":"Ordu’da köylüler ve yaşam alanı savunucuları, yaylaları, su kaynaklarını ve tarım alanlarını hedef alan maden, enerji ve turizm projelerine karşı mücadele ediyor. Aybastı, Korgan, Kabataş ve yayla hattındaki mücadele halk toplantıları, yerel örgütlenmeler ve basın açıklamalarıyla sürüyor.","Medya":"","Konum":"","Yazı/ Haber/Yayın":"https://www.facebook.com/share/v/1B3sm4YoLk/"},{"Alan":"Ekoloji Direnişi","Başlık":"Akbelen / İkizköy direnişi","Yer":"Milas / Muğla","Sendika/Dernek/Kurum":"İkizköylüler ve yaşam alanı savunucuları","İşkolu":"Bağımsız","Neden/Talepler":"İkizköylüler ve yaşam alanı savunucuları, kömür madeni genişletmesinin durdurulmasını, zeytinliklerin, ormanların ve köy yaşamının korunmasını istiyor.","Başlangıç tarihi":"17.07.2019","Zaman/Gün":"17 Temmuz 2019 tarihinden beri, 2552. gün; uzun soluklu köy ve orman savunması sürüyor","Eylem biçimi":"Nöbet tutuluyor, dava süreci takip ediliyor, köy savunması sürdürülüyor ve kitlesel eylemler gerçekleştiriliyor.","Durum":"Devam ediyor","Bilgiler":"Akbelen ve İkizköy’de köylüler, kömür madeni genişletmesine karşı zeytinliklerini, ormanlarını ve köy yaşamını savunuyor. Şirketin doğa talanına karşı yıllardır süren direniş nöbetler, dava takibi ve köy savunmasıyla devam ediyor.","Medya":"","Konum":"https://maps.app.goo.gl/dSSRwRgU6wPAqrMT6","Yazı/ Haber/Yayın":"https://umutsen.org/index.php/2026/05/milas-1-sirketten-buyuktur/\n https://umutsen.org/index.php/2025/06/yeni-torba-yasa-ve-koylulerin-mucadelesi/"},{"Alan":"Ekoloji Direnişi","Başlık":"Varto / Karlıova JES karşıtı mücadele","Yer":"Varto / Muş ve Karlıova / Bingöl","Sendika/Dernek/Kurum":"Varto Ekoloji Platformu, köylüler ve yaşam alanı savunucuları","İşkolu":"Bağımsız","Neden/Talepler":"Varto ve Karlıova’daki köylüler, JES projesinin durdurulmasını, su kaynaklarının, tarımın, hayvancılığın ve köy yaşamının korunmasını istiyor.","Başlangıç tarihi":"Mart 2026","Zaman/Gün":"Mart 2026’dan beri; gün düzeyinde başlangıç doğrulanamadı","Eylem biçimi":"Direniş nöbeti tutuluyor, miting ve köy toplantıları düzenleniyor, yerel platform çalışmaları yürütülüyor.","Durum":"Devam ediyor","Bilgiler":"Varto ve Karlıova’daki köylüler, JES projesine karşı su kaynaklarını, tarımı, hayvancılığı ve köy yaşamını savunuyor. Varto Ekoloji Platformu’nun çağrısıyla büyüyen mücadele, direniş nöbeti, köy toplantıları ve mitinglerle sürüyor.","Medya":"","Konum":"https://maps.app.goo.gl/xkqbcUzPYHtVLCzZ8","Yazı/ Haber/Yayın":"https://www.youtube.com/live/24CmLh3uMnQ?si=3X22ig_xHnRf0Euw"},{"Alan":"Ekoloji Direnişi","Başlık":"Diyarbakır / Lice ekoloji direnişi","Yer":"Lice / Diyarbakır","Sendika/Dernek/Kurum":"Yerel halk, kadınlar ve ekoloji savunucuları","İşkolu":"Bağımsız","Neden/Talepler":"Lice ve çevresindeki halk, maden faaliyetlerinin durdurulmasını, doğa tahribatının ve yaşam alanlarının gasbının son bulmasını, toprağın ve suyun korunmasını istiyor.","Başlangıç tarihi":"","Zaman/Gün":"Lice ve çevre köylerde proje bazında farklı tarihlerde süren mücadele","Eylem biçimi":"Köylerde açıklamalar yapılıyor, nöbet tutuluyor, dava ve diğer süreçler takip ediliyor.","Durum":"Devam ediyor","Bilgiler":"Lice ve çevresinde yerel halk, kadınlar ve ekoloji savunucuları, maden faaliyetlerine ve doğa tahribatına karşı yaşam alanlarını savunuyor. Mücadele, toprağın, suyun ve köy yaşamının şirketlere teslim edilmemesi için nöbetler ve süreç takibiyle sürüyor.","Medya":"","Konum":"https://maps.app.goo.gl/pWzaVQbABgL6Pxxn6","Yazı/ Haber/Yayın":"https://umutsen.org/index.php/2026/06/sermayenin-mardin-isgali/"},{"Alan":"Ekoloji Direnişi","Başlık":"Mardin ekoloji mücadelesi","Yer":"Mardin ve ilçeleri","Sendika/Dernek/Kurum":"Yerel halk ve ekoloji örgütleri","İşkolu":"Bağımsız","Neden/Talepler":"Mardin’deki halk ve ekoloji örgütleri, maden, taş ocağı ve enerji projelerinin durdurulmasını, tarım alanlarının, su varlıklarının ve yaşam alanlarının korunmasını istiyor.","Başlangıç tarihi":"","Zaman/Gün":"Mardin ve ilçelerinde proje bazında farklı tarihlerde süren mücadele","Eylem biçimi":"Halk toplantıları ve basın açıklamaları düzenleniyor, yerel süreçler takip ediliyor.","Durum":"Devam ediyor","Bilgiler":"Mardin ve ilçelerinde yerel halk ve ekoloji örgütleri, maden, taş ocağı ve enerji projelerine karşı tarım alanlarını, su varlıklarını ve yaşam alanlarını savunuyor. Mücadele, halk toplantıları, basın açıklamaları ve yerel süreç takibiyle devam ediyor.","Medya":"","Konum":"","Yazı/ Haber/Yayın":"https://umutsen.org/index.php/2025/06/yeni-torba-yasa-ve-koylulerin-mucadelesi/"},{"Alan":"Ekoloji Direnişi","Başlık":"Mersin Arslanköy / Değirmençay mücadelesi","Yer":"Toroslar ve Yenişehir / Mersin","Sendika/Dernek/Kurum":"Köylüler, MERÇED ve ekoloji savunucuları","İşkolu":"Bağımsız","Neden/Talepler":"Arslanköy ve Değirmençay’daki köylüler, boksit madeni genişletmesi ile taş ocağı projelerinin durdurulmasını, su kaynaklarının, meraların, tarım alanlarının ve köy yaşamının korunmasını istiyor.","Başlangıç tarihi":"24.12.2025","Zaman/Gün":"24 Aralık 2025 tarihinden beri, 200. gün","Eylem biçimi":"Halk toplantıları ve basın açıklamaları düzenleniyor, ÇED ve dava süreçleri takip ediliyor.","Durum":"Devam ediyor","Bilgiler":"Arslanköy ve Değirmençay çevresinde köylüler, MERÇED ve ekoloji savunucuları, boksit madeni genişletmesi ve taş ocağı projelerine karşı mücadele ediyor. Köylüler, su kaynaklarının, meraların, tarım alanlarının ve köy yaşamının şirketlere teslim edilmemesini istiyor.","Medya":"","Konum":"https://maps.app.goo.gl/wo3RxdmL78AQ9Vm89","Yazı/ Haber/Yayın":""},{"Alan":"Ekoloji Direnişi","Başlık":"Şırnak ağaç kesimlerine karşı ekoloji mücadelesi","Yer":"Besta, Cudi ve Gabar / Şırnak","Sendika/Dernek/Kurum":"Şırnak Ekoloji Derneği, hukukçular ve yerel halk","İşkolu":"Bağımsız","Neden/Talepler":"Şırnak’taki halk ve ekoloji savunucuları, ağaç kesimlerinin, petrol ve maden aramalarının durdurulmasını, ormanların ve yaşam alanlarının korunmasını istiyor.","Başlangıç tarihi":"","Zaman/Gün":"Yıllardır süren, Besta, Cudi ve Gabar’a yayılan çok merkezli mücadele","Eylem biçimi":"Hukuki başvurular yapılıyor, basın açıklamaları ve imza kampanyaları düzenleniyor, ekoloji buluşmaları gerçekleştiriliyor.","Durum":"Devam ediyor","Bilgiler":"Şırnak’ta Besta, Cudi ve Gabar hattındaki yerel halk ile ekoloji savunucuları, ağaç kesimlerine, petrol ve maden aramalarına karşı mücadele ediyor. Şırnak Ekoloji Derneği ve hukukçular, ormanların ve yaşam alanlarının korunması için hukuki başvurular, açıklamalar ve kampanyalar yürütüyor.","Medya":"","Konum":"https://maps.app.goo.gl/UcRSyxCjyQNWEYdd8","Yazı/ Haber/Yayın":"https://www.facebook.com/guvencesizlersendikasi/videos/2502679080174194/"},{"Alan":"Ekoloji Direnişi","Başlık":"Bingöl ekoloji mücadelesi","Yer":"Bingöl, özellikle Karlıova","Sendika/Dernek/Kurum":"Köylüler ve ekoloji savunucuları","İşkolu":"Bağımsız","Neden/Talepler":"Bingöl’deki köylüler ve ekoloji savunucuları, JES, maden, HES ve taş ocağı projelerinin durdurulmasını, suyun, toprağın ve köy yaşamının korunmasını istiyor.","Başlangıç tarihi":"","Zaman/Gün":"Bingöl ve Karlıova’da proje bazında farklı tarihlerde süren mücadele","Eylem biçimi":"Köy toplantıları düzenleniyor, yerel platform çalışmaları yürütülüyor ve basın açıklamaları yapılıyor.","Durum":"Devam ediyor","Bilgiler":"Bingöl’de köylüler ve ekoloji savunucuları, JES, maden, HES ve taş ocağı projelerine karşı suyu, toprağı ve köy yaşamını savunuyor. Karlıova hattındaki mücadele köy toplantıları, yerel platform çalışmaları ve basın açıklamalarıyla sürüyor.","Medya":"","Konum":"https://maps.app.goo.gl/ECige4oXMKsJCwmd9","Yazı/ Haber/Yayın":"https://www.facebook.com/guvencesizlersendikasi/videos/1930908634198820/"},{"Alan":"İşçi Direnişi","Başlık":"Afyon KYK işçisi işe iade mücadelesi","Yer":"Destine Hatun Kız Öğrenci Yurdu ve Gençlik ve Spor İl Müdürlüğü önü / Afyonkarahisar","Sendika/Dernek/Kurum":"Tüm Otel ve Turizm İşçileri Sendikası","İşkolu":"Konaklama ve Turizm","Neden/Talepler":"OTİS ve işten çıkarılan KYK işçisi, sendikalı işçinin işe iade edilmesini, sendikal baskının son bulmasını, işçi sağlığı ve iş güvenliği önlemlerinin alınmasını istiyor.","Başlangıç tarihi":"22.06.2026","Zaman/Gün":"22 Haziran 2026 tarihinden beri, 20. gün","Eylem biçimi":"Gençlik ve Spor İl Müdürlüğü önünde basın açıklaması yapılıyor, işe iade eylemleri ve dayanışma çağrıları gerçekleştiriliyor.","Durum":"Devam ediyor","Bilgiler":"Afyon’daki KYK yurdunda çalışan OTİS üyesi işçi, işçi sağlığı ve iş güvenliği mücadelesi yürüttüğü için disiplin kurulu kararı olmadan işten çıkarıldı. Tüm Otel ve Turizm İşçileri Sendikası, işçinin işe iadesi ve güvenli çalışma koşullarının sağlanması için Gençlik ve Spor İl Müdürlüğü önünde mücadele ediyor.","Medya":"","Konum":"https://maps.app.goo.gl/eFUz1kj3mEnVHkKB7","Yazı/ Haber/Yayın":""},{"Alan":"İşçi Direnişi","Başlık":"AFP Türkiye Bürosu grevi","Yer":"İstanbul","Sendika/Dernek/Kurum":"Türkiye Gazeteciler Sendikası","İşkolu":"Basın ve Medya","Neden/Talepler":"AFP Türkiye Bürosu çalışanları, toplu iş sözleşmesinin kendi talepleri doğrultusunda imzalanmasını, resmi enflasyonun altında kalan zam teklifinin geri çekilmesini, insanca ücretin güvence altına alınmasını istiyor.","Başlangıç tarihi":"06.07.2026","Zaman/Gün":"6 Temmuz 2026 tarihinden beri, 6. gün","Eylem biçimi":"Grev yapılıyor, grev pankartı asılıyor ve basın açıklamaları düzenleniyor.","Durum":"Sonuçlandı","Bilgiler":"AFP Türkiye Bürosu çalışanları, toplu iş sözleşmesi görüşmelerinde anlaşma sağlanamaması üzerine 6 Temmuz 2026’da greve çıktı. Türkiye Gazeteciler Sendikası üyesi işçiler, resmi enflasyonun altında kalan zam teklifine karşı insanca ücret ve toplu sözleşme hakkı için direniyor.","Medya":"","Konum":"https://maps.app.goo.gl/SHCrKbAPmyZKvXGJ6","Yazı/ Haber/Yayın":""},{"Alan":"İşçi Direnişi","Başlık":"Çapa Tıp Fakültesi yemekhane işçileri direnişi","Yer":"Çapa / Fatih / İstanbul","Sendika/Dernek/Kurum":"DİSK/Gıda-İş ve Çapa yemekhane işçileri","İşkolu":"Yemek ve Hizmet","Neden/Talepler":"İşçiler, işten çıkarılanların işe iade edilmesini, geçmiş dönem ücret ve diğer alacakların eksiksiz ödenmesini, ibraname ve sendikadan vazgeçme dayatmalarının kaldırılmasını, sendikalı ve güvenceli çalışma hakkının tanınmasını istiyor.","Başlangıç tarihi":"10.07.2026","Zaman/Gün":"10 Temmuz 2026 tarihinden beri, 11. gün","Eylem biçimi":"Hastane yerleşkesinde yürüyüşler ve basın açıklamaları yapılıyor, dayanışma ziyaretleri gerçekleştiriliyor.","Durum":"Devam ediyor","Bilgiler":"İstanbul Üniversitesi Çapa Tıp Fakültesi yemekhanesinde taşeron değişikliği sırasında yaklaşık 100 işçinin işine son verildi. İşçiler, haklarından ve sendikal örgütlenmeden vazgeçmelerini öngören koşulları kabul etmeyerek işe iade ve güvenceli çalışma talebiyle mücadeleye başladı.","Medya":"","Konum":"https://maps.app.goo.gl/dfU3BhzrEKkMoE4t6","Yazı/ Haber/Yayın":""},{"Alan":"İşçi Direnişi","Başlık":"Eti Gümüş Maden işçileri direnişi","Yer":"Maden / Elazığ","Sendika/Dernek/Kurum":"Bağımsız Maden İşçileri Sendikası","İşkolu":"Maden","Neden/Talepler":"İşçiler, 13 aydır ödenmeyen ücret, kıdem ve diğer işçilik alacaklarının eksiksiz ödenmesini, ücretsiz izin dayatmasının son bulmasını istiyor.","Başlangıç tarihi":"18.07.2026","Zaman/Gün":"18 Temmuz 2026 tarihinden beri, 3. gün","Eylem biçimi":"Maden sahasında direniş ve basın açıklamaları yapılıyor; ödeme yapılmaması halinde Ankara yürüyüşü ve mücadelenin büyütülmesi duyuruluyor.","Durum":"Devam ediyor","Bilgiler":"Yıldızlar SSS Holding bünyesindeki Eti Gümüş’te işçiler, uzun süredir ödenmeyen hakları ve ücretsiz izin dayatması nedeniyle Bağımsız Maden-İş öncülüğünde direnişe başladı. İşçiler 24 Temmuz’a kadar ödeme yapılmaması halinde Ankara’ya yürüyeceklerini açıkladı.","Medya":"","Konum":"https://maps.app.goo.gl/JomKxZcSQA259x6Q9","Yazı/ Haber/Yayın":""},{"Alan":"İşçi Direnişi","Başlık":"Tatbak işçilerinin sendika ve işe iade mücadelesi","Yer":"Velibaba / Pendik / İstanbul","Sendika/Dernek/Kurum":"Tekgıda-İş","İşkolu":"Gıda","Neden/Talepler":"İşçiler, sendikal örgütlenme nedeniyle işten atılan 13 işçinin işe iade edilmesini, baskı ve mobbingin son bulmasını, sendikal yetkinin tanınmasını ve toplu iş sözleşmesi sürecinin başlatılmasını istiyor.","Başlangıç tarihi":"14.07.2026","Zaman/Gün":"14 Temmuz 2026 tarihinden beri, 7. gün","Eylem biçimi":"Fabrika önünde basın açıklamaları ve işe iade eylemleri yapılıyor, dayanışma çağrıları gerçekleştiriliyor.","Durum":"Devam ediyor","Bilgiler":"TMSF yönetimindeki Tatbak’ta Tekgıda-İş’in yetki süreci sonrasında 13 işçi işten çıkarıldı. İşçiler ve sendika, işten atmaların geri alınması ve sendikal hakların tanınması için fabrika önünde mücadele başlattı.","Medya":"","Konum":"https://maps.app.goo.gl/6yt4t54Wdc8XG18c6","Yazı/ Haber/Yayın":""},{"Alan":"İşçi Direnişi","Başlık":"ASSU / Aşkale İçecek grevi","Yer":"Akyazı / Sakarya","Sendika/Dernek/Kurum":"Öz Gıda-İş","İşkolu":"Gıda ve İçecek","Neden/Talepler":"İşçiler, işverenin sendikal yetkiyi tanımasını, işten atılan işçilerin işe iade edilmesini, toplu iş sözleşmesinin imzalanmasını ve insanca, güvenli çalışma koşullarını istiyor.","Başlangıç tarihi":"03.04.2026","Zaman/Gün":"3 Nisan 2026 tarihinden beri, 109. gün","Eylem biçimi":"Fabrika önünde grev ve grev nöbeti sürdürülüyor, basın açıklamaları ile dayanışma ziyaretleri yapılıyor.","Durum":"Devam ediyor","Bilgiler":"Haziran 2023’te başlayan örgütlenme ve yetki sürecinin ardından işveren toplu sözleşme görüşmelerine yanaşmadı. İşten atmaların da yaşandığı fabrikada Öz Gıda-İş üyesi işçiler 3 Nisan’da greve çıktı.","Medya":"","Konum":"https://maps.app.goo.gl/8rj9FX7sApwyFFEC7","Yazı/ Haber/Yayın":""},{"Alan":"İş Cinayeti Davası","Başlık":"Çorlu Tren Katliamı adalet mücadelesi","Yer":"Sarılar / Çorlu / Tekirdağ","Sendika/Dernek/Kurum":"Çorlu Tren Katliamı aileleri ve dava avukatları","İşkolu":"Bağımsız","Neden/Talepler":"Aileler, siyasi ve idari sorumlular dahil bütün kamu görevlilerinin etkili biçimde yargılanmasını, sorumluluğun alt kademe çalışanlarla sınırlandırılmamasını ve cezasızlığın son bulmasını istiyor.","Başlangıç tarihi":"08.07.2018","Zaman/Gün":"8 Temmuz 2018 tarihinden beri, 2935. gün","Eylem biçimi":"Dava ve üst yargı süreçleri takip ediliyor, anmalar, yürüyüşler ve basın açıklamaları yapılıyor.","Durum":"Devam ediyor","Bilgiler":"Çorlu’da trenin devrilmesi sonucu 7’si çocuk 25 kişi yaşamını yitirdi. Katliamın sekizinci yılında aileler, gerçek ve bütün sorumlular yargılanana kadar adalet mücadelesinin süreceğini açıkladı.","Medya":"","Konum":"https://maps.app.goo.gl/2bUyebydeTWKjP2u5","Yazı/ Haber/Yayın":""},{"Alan":"İş Cinayeti Davası","Başlık":"Amasra Maden İş Cinayeti Davası","Yer":"Amasra / Bartın","Sendika/Dernek/Kurum":"Amasra maden katliamında yakınlarını kaybeden aileler ve dava avukatları","İşkolu":"Bağımsız","Neden/Talepler":"Aileler, sorumluların olası kasttan cezalandırılmasını, üst düzey kurum ve kamu yöneticilerinin yargılanmasını, verilen cezaların etkisizleştirilmemesini ve cezasızlığın son bulmasını istiyor.","Başlangıç tarihi":"14.10.2022","Zaman/Gün":"14 Ekim 2022 tarihinden beri, 1376. gün","Eylem biçimi":"Duruşma ve istinaf süreçleri takip ediliyor, adliye önünde açıklamalar ve anmalar yapılıyor.","Durum":"Devam ediyor","Bilgiler":"TTK Amasra Müessesesi’ndeki patlamada 43 madenci yaşamını yitirdi. Sanıklara bilinçli taksirden verilen cezalar Mart 2026’da istinafta onandı. Ailelerin olası kast ve bütün sorumluların yargılanması talebi sürüyor.","Medya":"","Konum":"https://maps.app.goo.gl/sBnWhE3YiswkTpY4A","Yazı/ Haber/Yayın":""},{"Alan":"İş Cinayeti Davası","Başlık":"Soma Maden Katliamı kamu görevlileri davası","Yer":"Soma / Manisa","Sendika/Dernek/Kurum":"Soma 301 Madenciler Derneği, aileler ve dava avukatları","İşkolu":"Bağımsız","Neden/Talepler":"Aileler, kamu görevlileri hakkında verilen beraat ve düşük cezaların kaldırılmasını, bütün idari ve siyasi sorumluların etkili biçimde yargılanmasını ve cezasızlığın son bulmasını istiyor.","Başlangıç tarihi":"13.05.2014","Zaman/Gün":"13 Mayıs 2014 tarihinden beri, 4452. gün","Eylem biçimi":"Duruşma ve istinaf süreçleri takip ediliyor, anmalar ve adliye önünde basın açıklamaları yapılıyor.","Durum":"Devam ediyor","Bilgiler":"301 madencinin yaşamını yitirdiği Soma katliamına ilişkin kamu görevlileri davasında 10 sanık beraat etti, 18 sanığa kısa süreli cezalar verildi. Haziran 2026’da ailelere beraat kararlarına karşı istinaf başvurusu yolu açıldı.","Medya":"","Konum":"https://maps.app.goo.gl/J9ptzqMpkcYgEuXM9","Yazı/ Haber/Yayın":""},{"Alan":"İş Cinayeti Davası","Başlık":"İliç Çöpler Altın Madeni İş Cinayeti Davası","Yer":"İliç / Erzincan","Sendika/Dernek/Kurum":"İliç maden katliamında yakınlarını kaybeden aileler, avukatlar ve meslek örgütleri","İşkolu":"Bağımsız","Neden/Talepler":"Aileler, Anagold ve Çalık Grubu yöneticileriyle bütün kamu görevlilerinin sorumlulukları oranında yargılanmasını, tutukluluk tedbirlerinin uygulanmasını, çevre ve işçi sağlığı suçlarının tüm yönleriyle ortaya çıkarılmasını istiyor.","Başlangıç tarihi":"13.02.2024","Zaman/Gün":"13 Şubat 2024 tarihinden beri, 889. gün; dava 20 Ekim 2026’ya ertelendi","Eylem biçimi":"Duruşmalar takip ediliyor, adliye önünde açıklamalar ve dayanışma eylemleri yapılıyor.","Durum":"Devam ediyor","Bilgiler":"Çöpler Altın Madeni’ndeki liç yığını kaymasında 9 işçi yaşamını yitirdi. 7 Temmuz 2026’daki sekizinci duruşmada son iki tutuklu sanık da tahliye edildi, yeni bilirkişi heyeti oluşturuldu ve dava 20 Ekim’e ertelendi.","Medya":"","Konum":"https://maps.app.goo.gl/RubRcxircHy2TmFZA","Yazı/ Haber/Yayın":""},{"Alan":"Kayıp Yakınları","Başlık":"6 Şubat Deprem Davaları adalet mücadelesi","Yer":"Depremden etkilenen kentler ve Türkiye geneli","Sendika/Dernek/Kurum":"Adalet Peşinde Aileleri Platformu ve depremde yakınlarını kaybeden aileler","İşkolu":"Bağımsız","Neden/Talepler":"Aileler, yapı müteahhitleriyle birlikte ruhsat, denetim ve imar sorumluluğu bulunan bütün kamu görevlilerinin yargılanmasını, olası kast hükümlerinin uygulanmasını ve etkili, adil yargılama yapılmasını istiyor.","Başlangıç tarihi":"06.02.2023","Zaman/Gün":"6 Şubat 2023 tarihinden beri, 1261. gün","Eylem biçimi":"Duruşmalar izleniyor, adliye ve Adalet Bakanlığı önünde açıklamalar, anmalar, yürüyüşler ve imza kampanyaları düzenleniyor.","Durum":"Devam ediyor","Bilgiler":"Adalet Peşinde Aileleri Platformu, farklı kentlerdeki deprem dosyalarını birlikte takip ediyor. Platform 2026’da Hasan Alpargün Apartmanı ve diğer dosyalarda olası kast kararlarının korunması, kamu görevlilerinin yargılanması ve cezasızlığın son bulması için eylemlerini sürdürdü.","Medya":"","Konum":"https://maps.app.goo.gl/opEQ3uRf12u5Vpya6","Yazı/ Haber/Yayın":""},{"Alan":"Ekoloji Direnişi","Başlık":"Turnalar Yaylası maden direnişi","Yer":"Turnalar Yaylası / Korgan / Ordu","Sendika/Dernek/Kurum":"Korgan Aybastı Kabataş Çevre Derneği, yöre halkı ve yaşam alanı savunucuları","İşkolu":"Bağımsız","Neden/Talepler":"Yöre halkı, Taşyapı’nın maden arama ve sondaj çalışmalarının durdurulmasını, su kaynaklarının, ormanların, meraların, tarım ve hayvancılığın korunmasını istiyor.","Başlangıç tarihi":"01.07.2026","Zaman/Gün":"Temmuz 2026’da yoğunlaşan yayla nöbeti; başlangıcın gün düzeyi doğrulanamadı","Eylem biçimi":"Yayla nöbeti tutuluyor, dayanışma çadırı kuruluyor, kitlesel açıklamalar ve dava takibi yapılıyor.","Durum":"Devam ediyor","Bilgiler":"Turnalar Yaylası’nda Taşyapı’nın sondaj çalışmalarına karşı köylüler ve KAKÇEV nöbet tutuyor. Bilirkişi raporunda sondajın dahi geri döndürülemez zarar yaratabileceği belirtilirken kurulan dayanışma çadırı jandarma tarafından kaldırıldı.","Medya":"","Konum":"https://maps.app.goo.gl/gLCU7i6EvkwReuHFA","Yazı/ Haber/Yayın":""},{"Alan":"Ekoloji Direnişi","Başlık":"Arslanköy boksit madeni genişletmesine karşı mücadele","Yer":"Arslanköy / Toroslar / Mersin","Sendika/Dernek/Kurum":"Arslanköy halkı, MERÇED ve yaşam alanı savunucuları","İşkolu":"Bağımsız","Neden/Talepler":"Köylüler, boksit madeni sahasının 23 hektardan yaklaşık 510 hektara çıkarılmasının durdurulmasını, su kaynaklarının, meraların, tarımın, hayvancılığın ve yayla yaşamının korunmasını istiyor.","Başlangıç tarihi":"24.12.2025","Zaman/Gün":"24 Aralık 2025 tarihinden beri, 209. gün","Eylem biçimi":"Halk toplantıları, basın açıklamaları, imza kampanyaları ve ÇED süreci takibi yapılıyor.","Durum":"Devam ediyor","Bilgiler":"Arslanköy’de mevcut boksit madeninin yaklaşık 20 kat genişletilmesi girişimi köylüleri ve ekoloji örgütlerini harekete geçirdi. Mücadele 2026’da açıklamalar, imza çalışmaları ve ÇED itirazlarıyla sürdü.","Medya":"","Konum":"https://maps.app.goo.gl/ypAXsqqXsSkTqY2o6","Yazı/ Haber/Yayın":""},{"Alan":"İşçi Direnişi","Başlık":"Fugo Yer Hizmetleri Cem Çelik işe iade mücadelesi","Yer":"İstanbul Havalimanı ve Gayrettepe / İstanbul","Sendika/Dernek/Kurum":"DİSK/Nakliyat-İş","İşkolu":"Havacılık ve Yer Hizmetleri","Neden/Talepler":"Cem Çelik’in sendikaya üye olduğu için Kod 46 ile yapılan tazminatsız işten çıkarmasının geri alınması, işe iade edilmesi, sendikal baskıların ve ağır çalışma koşullarının son bulması isteniyor.","Başlangıç tarihi":"20.07.2026","Zaman/Gün":"20 Temmuz 2026 tarihinden beri, 1. gün","Eylem biçimi":"Fugo Yer Hizmetleri şirket merkezi önünde basın açıklaması yapılıyor, işe iade ve sendikal özgürlük çağrısı gerçekleştiriliyor.","Durum":"Devam ediyor","Bilgiler":"İstanbul Havalimanı’nda Fugo Yer Hizmetleri bünyesinde çalışan Nakliyat-İş üyesi Cem Çelik, sendikal faaliyeti nedeniyle Kod 46 ile tazminatsız olarak işten çıkarıldı. Nakliyat-İş, Cem Çelik’in işe iade edilmesi talebiyle 20 Temmuz 2026’da şirketin Gayrettepe’deki merkezi önünde basın açıklaması yaptı.","Medya":"","Konum":"https://maps.app.goo.gl/ZhhcqE7H4LGir9eD6","Yazı/ Haber/Yayın":""},{"Alan":"İşçi Direnişi","Başlık":"İBB memurlarının toplu sözleşme ve SDS mücadelesi","Yer":"Saraçhane / İstanbul","Sendika/Dernek/Kurum":"İstanbul Büyükşehir Belediye Çalışanları Derneği ve Bem-Bir-Sen üyesi İBB memurları","İşkolu":"Belediye Hizmetleri","Neden/Talepler":"İBB’de bekleyen toplu sözleşmelerin imzalanması, Sosyal Denge Sözleşmesi ücretinin yükseltilmesi ve yüzde 120 net ödenmesi, kaldırılan Ramazan ve Kurban Bayramı ikramiyeleri, 1 Mayıs ikramiyesi ve yakacak yardımının geri verilmesi isteniyor.","Başlangıç tarihi":"20.01.2026","Zaman/Gün":"20 Ocak 2026 tarihinden beri, 182. gün. Talepler 18 Temmuz 2026’da yeniden gündeme getirildi.","Eylem biçimi":"Saraçhane’de basın açıklamaları ve protesto eylemleri yapılıyor, sosyal medya üzerinden hakların geri verilmesi çağrıları gerçekleştiriliyor.","Durum":"Devam ediyor","Bilgiler":"İBB ile sendikalar arasındaki 2026–2027 Sosyal Denge Sözleşmesi görüşmelerinde dört mali hak konusunda anlaşma sağlanamaması üzerine memurlar Saraçhane’de eylem yaptı. İBB Çalışanları Derneği, temmuz ayında yaptığı açıklamada sözleşmelerin hâlâ imzalanmadığını, SDS ücretlerinin düşük kaldığını ve ikramiyelerin kaldırılması nedeniyle mağduriyetin sürdüğünü belirtti.","Medya":"","Konum":"https://maps.app.goo.gl/VyTj8PY9x3mBRt5t6","Yazı/ Haber/Yayın":""},{"Alan":"Ekoloji Direnişi","Başlık":"İnceğiz taş ocağına karşı yaşam alanı mücadelesi","Yer":"İnceğiz Mahallesi, Gazipaşa / Antalya","Sendika/Dernek/Kurum":"İnceğiz Mahallesi halkı ve mahalle muhtarlığı","İşkolu":"Bağımsız","Neden/Talepler":"İnceğiz halkı, kalker ocağı ve kırma-eleme tesisi projesinin iptal edilmesini, tarım alanlarının, içme ve sulama suyu kaynaklarının, ormanların, doğal yaşamın ve köyün üretim düzeninin korunmasını istiyor.","Başlangıç tarihi":"15.07.2026","Zaman/Gün":"15 Temmuz 2026 tarihinden beri, 6. gün","Eylem biçimi":"Mahallede kitlesel eylem düzenleniyor, pankart ve dövizlerle basın açıklaması yapılıyor, ÇED kararına karşı hukuki süreç hazırlanıyor.","Durum":"Devam ediyor","Bilgiler":"Gazipaşa Belediyesinin İnceğiz Mahallesi’nde yıllık 390 bin ton üretim kapasiteli kalker ocağı ve kırma-eleme tesisi kurma projesine ÇED Olumlu kararı verildi. Yaklaşık 56 yıl sürmesi planlanan projeye karşı mahalle halkı ve Muhtar Ali Özdemir bir araya geldi. Halk, taş ocağının tarımsal üretime, su kaynaklarına, ormanlara ve doğal yaşama zarar vereceğini belirterek projenin iptal edilmesini istiyor.","Medya":"","Konum":"https://maps.app.goo.gl/wBbZ7Wsc3KABuyC89","Yazı/ Haber/Yayın":""},{"Alan":"Hapishane Direnişi","Başlık":"Taceddin Erol Şahin’in tecride karşı açlık grevi","Yer":"Marmara 6 No’lu L Tipi Hapishanesi / Silivri","Sendika/Dernek/Kurum":"Taceddin Erol Şahin, İstanbul Üniversitesi Öğrenci Meclisi ve dayanışma kurumları","İşkolu":"Bağımsız","Neden/Talepler":"Taceddin Erol Şahin, ağır tecrit koşullarının, 24 saat kamera gözetiminin ve sosyal hak gasplarının son bulmasını, insani hapishane koşullarının sağlanmasını, hakkındaki davaların düşürülmesini ve serbest bırakılmasını istiyor.","Başlangıç tarihi":"29.04.2026","Zaman/Gün":"29 Nisan 2026 tarihinden beri. 20 Temmuz 2026 itibarıyla takvim hesabıyla 83. gün. Gün sayısı bazı açıklamalarda 73, 74 veya 77 olarak farklı aktarılıyor.","Eylem biçimi":"Süresiz ve dönüşümsüz açlık grevi sürdürülüyor, mektuplar ve açıklamalar yayımlanıyor, öğrenci örgütleri ve dayanışma kurumları tarafından eylem ve çağrılar yapılıyor.","Durum":"Devam ediyor","Bilgiler":"İstanbul Üniversitesi İktisat Fakültesi öğrencisi Taceddin Erol Şahin, 1 Mayıs öncesinde eyleme katılabileceği iddiasıyla 24 Nisan 2026’da gözaltına alınıp tutuklandı. Marmara 6 No’lu Hapishanesi’ndeki ağır tecrit koşullarına karşı 29 Nisan’da açlık grevine başladı. Şahin, sekiz metrekarelik hücrelerde iki kişinin tutulduğunu, kameraların sürekli açık olduğunu ve havalandırma hakkının kısıtlandığını aktardı.","Medya":"","Konum":"https://maps.app.goo.gl/urfoX93z1sE9d39i8","Yazı/ Haber/Yayın":""},{"Alan":"Ekoloji Direnişi","Başlık":"Sallar Malê Sala GES karşıtı mücadele","Yer":"Sallar, Malê Sala Mahallesi, Ergani / Diyarbakır","Sendika/Dernek/Kurum":"Sallar Mahallesi halkı ve ekoloji örgütleri","İşkolu":"Bağımsız","Neden/Talepler":"Sallar halkı, Smart GES Enerji Üretim AŞ tarafından yapılmak istenen Güneş Enerjisi Santrali projesinin iptal edilmesini, mera ve tarım alanlarının, hayvancılığın, geçim kaynaklarının ve yaşam alanlarının korunmasını istiyor.","Başlangıç tarihi":"12.07.2026","Zaman/Gün":"12 Temmuz 2026 tarihinden beri, 9. gün","Eylem biçimi":"Mahallede yürüyüş ve kitlesel basın açıklaması yapılıyor, yerel halk ve ekoloji örgütleri tarafından proje karşıtı çağrılar gerçekleştiriliyor.","Durum":"Devam ediyor","Bilgiler":"Diyarbakır’ın Ergani ilçesine bağlı Sallar Malê Sala Mahallesi’nde yapılması planlanan GES projesine karşı mahalle halkı ve ekoloji örgütleri yürüyüş düzenledi. Halk, projenin mera alanlarını, tarımsal üretimi, hayvancılığı ve geçim kaynaklarını yok edeceğini belirterek topraklarının enerji şirketine tahsis edilmesine karşı çıkıyor.","Medya":"","Konum":"https://maps.app.goo.gl/GZVChr1mgJyKn1abA","Yazı/ Haber/Yayın":""},{"Alan":"Ekoloji Direnişi","Başlık":"Cennetpınarı taş ocağına karşı yaşam alanı mücadelesi","Yer":"Cennetpınarı Mahallesi / Türkoğlu / Kahramanmaraş","Sendika/Dernek/Kurum":"Cennetpınarı Mahallesi halkı ve yaşam alanı savunucuları","İşkolu":"Bağımsız","Neden/Talepler":"Cennetpınarı halkı, Med Restorasyon tarafından yapılmak istenen mermer ocağı projesinin ve sondaj çalışmalarının tamamen iptal edilmesini, tarım alanlarının, zeytinliklerin, su kaynaklarının, meraların, ormanların ve depremden etkilenen yerleşim alanlarının korunmasını istiyor.","Başlangıç tarihi":"22.06.2026","Zaman/Gün":"22 Haziran 2026 tarihinden beri, 29. gün","Eylem biçimi":"Mahallede kitlesel basın açıklaması yapılıyor, sondaj çalışmalarına itiraz ediliyor, hukuki ve idari süreçler takip ediliyor.","Durum":"Devam ediyor","Bilgiler":"Türkoğlu’nun Cennetpınarı Mahallesi’nde Med Restorasyon adına yaklaşık 1000 dönümlük alanı kapsayan doğal taş ruhsatı düzenlendi. Ruhsat sahasında orman, mera, tarım alanları, su kaynakları ve mülkiyeti ihtilaflı araziler bulunuyor. Köylülerin tepkisi üzerine sondaj çalışmaları geçici olarak ertelendi. Halk, projenin tamamen iptal edilmesini istiyor.","Medya":"","Konum":"https://maps.app.goo.gl/8gTftSmT4jm5AYxJ8","Yazı/ Haber/Yayın":""},{"Alan":"Ekoloji Direnişi","Başlık":"Aslandere maden aramalarına karşı yaşam alanı mücadelesi","Yer":"Aslandere Köyü / Fındıklı / Rize","Sendika/Dernek/Kurum":"Aslandere Köyü halkı, Viçe Çevre Meclisi ve yaşam alanı savunucuları","İşkolu":"Bağımsız","Neden/Talepler":"Aslandere halkı, maden arama ve saha inceleme çalışmalarının durdurulmasını, köyün ormanlarının, derelerinin, çay bahçelerinin, su kaynaklarının ve yaşam alanlarının korunmasını istiyor.","Başlangıç tarihi":"21.07.2025","Zaman/Gün":"21 Temmuz 2025 tarihinden beri, 365. gün","Eylem biçimi":"Maden arama amacıyla bölgeye gelen şirket aracı durduruluyor, basın açıklamaları yapılıyor, yerel örgütlenme ve süreç takibi yürütülüyor.","Durum":"Devam ediyor","Bilgiler":"Aslandere Köyü’nde maden arama amacıyla bölgeye gelen şirket yetkilileri köylüler, Viçe Çevre Meclisi ve yerel yöneticiler tarafından durduruldu. MTA raporlarında bölgede demir potansiyelinden söz edilirken köyün üzerindeki geniş orman alanı ile çay bahçeleri ve su kaynakları maden faaliyetlerinin tehdidi altında bulunuyor.","Medya":"","Konum":"https://maps.app.goo.gl/MeGDxDU6L1Dx9osb8","Yazı/ Haber/Yayın":""},{"Alan":"Ekoloji Direnişi","Başlık":"Karakaya Köyü taş ocağına karşı yaşam alanı mücadelesi","Yer":"Karakaya Köyü / Sungurlu / Çorum","Sendika/Dernek/Kurum":"Karakaya Köyü Taş Ocağı Platformu, Karakaya Köyü Yardımlaşma ve Dayanışma Derneği ve köy halkı","İşkolu":"Bağımsız","Neden/Talepler":"Karakaya halkı, köyün yakınında yapılmak istenen taş ocağı ve kırma-eleme tesisinin iptal edilmesini, yeraltı sularının, tarım alanlarının, hayvancılığın, doğal yaşamın ve köy yerleşiminin korunmasını istiyor.","Başlangıç tarihi":"08.10.2025","Zaman/Gün":"8 Ekim 2025 tarihinden beri, 286. gün","Eylem biçimi":"ÇED kararına karşı dava açılıyor, mahkeme ve bilirkişi süreçleri takip ediliyor, adliye önünde protestolar ve basın açıklamaları yapılıyor.","Durum":"Devam ediyor","Bilgiler":"Ankara-Samsun hızlı tren hattı projesi kapsamında Karakaya Köyü’ne yaklaşık 180 metre mesafede yılda 3,5 milyon ton üretim yapacak taş ocağı kurulmak isteniyor. Proje için verilen “ÇED gerekli değildir” kararına karşı köylüler dava açtı. Halk, patlatmaların, taş tozunun ve su kaynaklarında oluşacak tahribatın köy yaşamını sona erdireceğini belirtiyor.","Medya":"","Konum":"https://maps.app.goo.gl/pFi9NdHGWX7DQ3Sh7","Yazı/ Haber/Yayın":""},{"Alan":"Ekoloji Direnişi","Başlık":"Gümüşhacıköy maden ruhsatlarına karşı mücadele","Yer":"Gümüşhacıköy, İnegöl Dağı ve çevre köyler / Amasya","Sendika/Dernek/Kurum":"Gümüşhacıköy Çevre Platformu, köylüler ve yaşam alanı savunucuları","İşkolu":"Bağımsız","Neden/Talepler":"Gümüşhacıköy halkı, İmirler, Karaali, Kılıçaslan ve Aşağıovacık köyleri ile İnegöl Dağı’nı kapsayan maden ihalelerinin ve ruhsatların iptal edilmesini, su kaynaklarının, göletlerin, meraların, ormanların, tarım alanlarının ve tarihi dokunun korunmasını istiyor.","Başlangıç tarihi":"19.04.2026","Zaman/Gün":"19 Nisan 2026 tarihinden beri, 93. gün","Eylem biçimi":"Basın açıklamaları yapılıyor, Öğretmenevi önünden Cumhuriyet Meydanı’na yürüyüş düzenleniyor, miting ve ruhsat iptal çağrıları gerçekleştiriliyor.","Durum":"Devam ediyor","Bilgiler":"Gümüşhacıköy’de dört köy ve İnegöl Dağı çevresinde yaklaşık 40 bin dönümlük alan maden arama sahasına açıldı. Ruhsat alanları İmirler Göleti’ni besleyen dereleri, içme suyu kuyularını, köy yerleşimlerini, ormanları ve meraları kapsıyor. Gümüşhacıköy Çevre Platformu maden ihalelerinin ve ruhsatların iptal edilmesi için mücadele ediyor.","Medya":"","Konum":"https://maps.app.goo.gl/NE9GS3cvQzp7Ken89","Yazı/ Haber/Yayın":""},{"Alan":"Ekoloji Direnişi","Başlık":"Havaçor Doğa ve Canlı Yaşam Nöbeti","Yer":"Havaçor Köyü ve Havaçor Vadisi / Ovacık / Dersim","Sendika/Dernek/Kurum":"Havaçor Köyü Derneği, köylüler, yöre dernekleri ve ekoloji örgütleri","İşkolu":"Bağımsız","Neden/Talepler":"Havaçor halkı, vadideki endemik bitkilerin ve yaban hayatının korunmasını, bitkilerin ticari amaçlarla kökünden sökülmesinin durdurulmasını, maden ve enerji projeleriyle yaşam alanlarının tahrip edilmesine son verilmesini istiyor.","Başlangıç tarihi":"24.05.2026","Zaman/Gün":"24 Mayıs 2026’da başlayan bir aylık nöbet tamamlandı.","Eylem biçimi":"Havaçor Vadisi’nde yaşam nöbeti tutuluyor, çadır kuruluyor, basın açıklamaları ve dayanışma çağrıları yapılıyor.","Durum":"Devam ediyor","Bilgiler":"Havaçor Köyü Derneği öncülüğünde vadinin bitki ve hayvan çeşitliliğini korumak amacıyla bir aylık Doğa ve Canlı Yaşam Nöbeti başlatıldı. Nöbette maden, JES, GES ve RES projelerinin yanı sıra ışkın, çiriş, aygülü, kekik ve diğer bitkilerin ticari amaçlarla bilinçsizce sökülmesine karşı çıkıldı.","Medya":"","Konum":"https://maps.app.goo.gl/dNxeQ2yG3bSY6tuo6","Yazı/ Haber/Yayın":""},{"Alan":"Ekoloji Direnişi","Başlık":"Satıcılar Bazirgân GES karşıtı mücadele","Yer":"Satıcılar, Bazirgân Köyü / Diyadin / Ağrı","Sendika/Dernek/Kurum":"Satıcılar Köyü halkı ve yaşam alanı savunucuları","İşkolu":"Bağımsız","Neden/Talepler":"Satıcılar halkı, köyün ortak mera ve tarım alanlarına yapılmak istenen GES projesinin durdurulmasını, kurulan panellerin kaldırılmasını, meraların, tarımsal üretimin ve hayvancılığın korunmasını istiyor.","Başlangıç tarihi":"12.04.2026","Zaman/Gün":"12 Nisan 2026 tarihinden beri, 100. gün","Eylem biçimi":"Köyde basın açıklamaları yapılıyor, iş makineleri durduruluyor, mera alanlarında bekleyiş sürdürülüyor, çadır nöbeti hazırlığı ve resmî başvurular yapılıyor.","Durum":"Devam ediyor","Bilgiler":"Diyadin’in Satıcılar Bazirgân Köyü’nde köylülerin ortak kullandığı yaklaşık 260 dönümlük mera ve tarım alanına GES kurulmak isteniyor. İl Genel Meclisinin projeyi iki kez reddetmesine rağmen şirketin resmî izinleri göstermeden çalışmalara başladığı belirtildi. Köylüler rızaları dışında yürütülen projenin durdurulmasını istiyor.","Medya":"","Konum":"https://www.google.com/maps/search/?api=1\u0026query=Sat%C4%B1c%C4%B1lar+K%C3%B6y%C3%BC+Diyadin+A%C4%9Fr%C4%B1","Yazı/ Haber/Yayın":""},{"Alan":"Ekoloji Direnişi","Başlık":"Yeşilalıç mera alanlarında GES karşıtı mücadele","Yer":"Yeşilalıç Pagan Mahallesi / Saray / Van","Sendika/Dernek/Kurum":"Yeşilalıç Mahallesi halkı ve mahalle muhtarlığı","İşkolu":"Bağımsız","Neden/Talepler":"Yeşilalıç halkı, 1400 dönümlük mera alanına yapılmak istenen GES projesinin durdurulmasını, hayvanların otlama alanlarının, meraların ve köyün temel geçim kaynağı olan hayvancılığın korunmasını istiyor.","Başlangıç tarihi":"22.05.2026","Zaman/Gün":"22 Mayıs 2026 tarihinden beri, 60. gün","Eylem biçimi":"Mera alanında protestolar yapılıyor, 500 imza toplanıyor, savcılık, kaymakamlık, valilik ve ilgili kamu kurumlarına başvurular gerçekleştiriliyor.","Durum":"Devam ediyor","Bilgiler":"Van’ın Saray ilçesine bağlı Yeşilalıç Mahallesi’nde 1400 dönümlük kayıtlı mera alanına GES kurulmaya başlandı. Hayvancılıkla geçinen mahalle halkı, projenin hayvanların otlama alanlarını ortadan kaldıracağını belirterek çalışmalara karşı çıktı. Mahalle halkı projenin durdurulması için 500 imza topladı ve resmî kurumlara başvurdu.","Medya":"","Konum":"https://www.google.com/maps/search/?api=1\u0026query=Ye%C5%9Filal%C4%B1%C3%A7+Mahallesi+Saray+Van","Yazı/ Haber/Yayın":""},{"Alan":"Ekoloji Direnişi","Başlık":"Pülümür Karagöz Gurik krom ocağına karşı mücadele","Yer":"Karagöz Gurik ve çevre köyler / Pülümür / Dersim","Sendika/Dernek/Kurum":"Karagöz ve Çevre Köyleri İnisiyatifi, Munzur Çevre Derneği, Dersim Barosu ve bölge halkı","İşkolu":"Bağımsız","Neden/Talepler":"Bölge halkı, Dimin Madencilik tarafından yapılmak istenen krom ocağı projesinin ve ÇED sürecinin sonlandırılmasını, Hel Dağı’nın, meraların, kaynak sularının, endemik bitkilerin, yaban hayatının, arıcılık ve hayvancılık alanlarının korunmasını istiyor.","Başlangıç tarihi":"18.03.2026","Zaman/Gün":"18 Mart 2026 tarihinden beri, 125. gün","Eylem biçimi":"ÇED sürecine karşı hukuki başvurular yapılıyor, yaklaşık 2 bin imza toplanıyor, köy toplantıları, halk buluşmaları ve basın açıklamaları düzenleniyor.","Durum":"Devam ediyor","Bilgiler":"Dimin Madencilik tarafından Karagöz Gurik Köyü ve çevresinde krom ocağı kurulmak isteniyor. Proje Karagöz, Kocatepe, Boğalı, Kovuklu, Çakırkaya ve Dağbek köylerinin kullandığı mera ve üretim alanlarını etkiliyor. Köylüler, Hel Dağı’nın endemik bitkiler, yaban keçileri, arıcılık ve hayvancılık açısından korunması gerektiğini belirterek projenin iptalini istiyor.","Medya":"","Konum":"https://maps.app.goo.gl/y1bbuTXUin14dphu9","Yazı/ Haber/Yayın":""},{"Alan":"İşçi Direnişi","Başlık":"TYH Tekstil işçilerinin sendikal hak ve işe iade mücadelesi","Yer":"Akhisar / Manisa, Alpullu / Kırklareli, Ordu ve Keşan / Edirne","Sendika/Dernek/Kurum":"DİSK/Tekstil","İşkolu":"Tekstil","Neden/Talepler":"TYH Tekstil işçileri, ücretlerin zamanında ve eksiksiz ödenmesini, sendikal baskı ve mobbingin son bulmasını, işten çıkarılan sendika üyelerinin işe iade edilmesini, sendikal yetkinin tanınmasını ve toplu iş sözleşmesi sürecinin başlatılmasını istiyor.","Başlangıç tarihi":"13.02.2026","Zaman/Gün":"13 Şubat 2026 tarihinden beri, 158. gün. İşçiler 24 Haziran ve 3 Temmuz 2026’da yeniden eylem yaptı.","Eylem biçimi":"Fabrika önlerinde ve vardiya girişlerinde basın açıklamaları, saatlik iş bırakma ve dayanışma eylemleri yapılıyor, işe iade davaları takip ediliyor.","Durum":"Devam ediyor","Bilgiler":"TYH Tekstil’in farklı kentlerdeki fabrikalarında çalışan işçiler, geciken ücretlere, kötü çalışma koşullarına ve sendikal örgütlenme nedeniyle yapılan işten çıkarmalara karşı mücadele ediyor. DİSK/Tekstil’in örgütlenme çalışması sürerken haziran ve temmuz aylarında Akhisar ve Alpullu fabrikalarında yeni eylemler gerçekleştirildi.","Medya":"","Konum":"https://maps.app.goo.gl/ECTANoVS8VB3A6hq8","Yazı/ Haber/Yayın":""},{"Alan":"İşçi Direnişi","Başlık":"Bizden Giyim işçilerinin ücret ve tazminat mücadelesi","Yer":"Kemalpaşa / İzmir","Sendika/Dernek/Kurum":"Bizden Giyim işçileri, Dev Tekstil ve Ege İşçi Birliği","İşkolu":"Tekstil","Neden/Talepler":"İşçiler, ödenmeyen ücretlerinin, kıdem ve ihbar tazminatlarının eksiksiz ödenmesini, işten çıkış işlemlerinin hukuka uygun biçimde yapılmasını ve patronun işçilere karşı sorumluluklarını yerine getirmesini istiyor.","Başlangıç tarihi":"28.06.2026","Zaman/Gün":"28 Haziran 2026’daki eylemden beri, 23. gün","Eylem biçimi":"Fabrika önünde basın açıklamaları ve protestolar yapılıyor, şirket yetkililerine ulaşılmaya çalışılıyor, hukuki süreç takip ediliyor.","Durum":"Devam ediyor","Bilgiler":"Yaklaşık 250 işçinin çalıştığı Bizden Giyim’de ücret ödemeleri Ocak 2026’dan itibaren aksadı. Fabrikanın nisanda üretimi durdurmasının ardından işçiler ücret, tazminat ve diğer alacaklarını alamadı. İşçiler haziran sonunda fabrika önünde bir araya gelerek haklarının ödenmesini istedi.","Medya":"","Konum":"https://maps.app.goo.gl/DNtbQNVSqK4u7M97A","Yazı/ Haber/Yayın":""},{"Alan":"İşçi Direnişi","Başlık":"Van Büyükşehir Belediyesi işçilerinin işe iade direnişi","Yer":"Van Büyükşehir Belediyesi ve Sanat Sokağı / Van","Sendika/Dernek/Kurum":"DİSK/Genel-İş ve işten çıkarılan belediye işçileri","İşkolu":"Belediye Hizmetleri","Neden/Talepler":"İşçiler, kayyım yönetimi tarafından yapılan işten çıkarmaların geri alınmasını, 223 işçinin işe iade edilmesini, işe iade yönündeki mahkeme kararlarının uygulanmasını ve siyasi-sendikal ayrımcılığın son bulmasını istiyor.","Başlangıç tarihi":"30.07.2025","Zaman/Gün":"30 Temmuz 2025 tarihinden beri, takvim hesabıyla 356. gün","Eylem biçimi":"Sanat Sokağı’nda nöbet tutuluyor, belediye önünde açıklamalar, yürüyüşler ve dayanışma ziyaretleri yapılıyor, dava süreçleri takip ediliyor.","Durum":"Devam ediyor","Bilgiler":"Van Büyükşehir Belediyesine kayyım atanmasının ardından işten çıkarılan 223 işçi, işe iade talebiyle uzun süredir direniyor. Mahkemelerden işçiler lehine kararlar çıkmasına rağmen işe dönüşlerin gerçekleştirilmediği belirtiliyor. Direniş haziran ve temmuz aylarında nöbet ve açıklamalarla sürdü.","Medya":"","Konum":"https://maps.app.goo.gl/UrHyD4ksinjd8nH27","Yazı/ Haber/Yayın":""},{"Alan":"İşçi Direnişi","Başlık":"Torbalı Belediyesi işçilerinin ücret alacakları mücadelesi","Yer":"Torbalı / İzmir","Sendika/Dernek/Kurum":"Belediye-İş İzmir 4 No’lu Şube ve BORBEL işçileri","İşkolu":"Belediye Hizmetleri","Neden/Talepler":"İşçiler, eksik ve gecikmeli ödenen ücretlerinin, ikramiyelerinin ve toplu sözleşmeden doğan ücret farklarının eksiksiz ödenmesini, ücretlerin düzenli yatırılmasını istiyor.","Başlangıç tarihi":"15.07.2026","Zaman/Gün":"15 Temmuz 2026’da yarım günlük iş bırakma yapıldı. Görüşmeler ve alacak sorunu sürüyor.","Eylem biçimi":"Temizlik işçileri yarım gün iş bırakıyor, belediye binası önünde basın açıklaması ve protesto yapılıyor.","Durum":"Devam ediyor","Bilgiler":"Torbalı Belediyesine bağlı BORBEL’de çalışan yaklaşık 800 işçinin kişi başına ortalama 100 bin liraya ulaşan ücret, ikramiye ve toplu sözleşme farkı alacağı bulunduğu açıklandı. Temizlik işçileri alacaklarının ödenmesi için iş bıraktı. İş bırakma bir süre sonra sona erdi fakat talepler devam ediyor.","Medya":"","Konum":"https://maps.app.goo.gl/o4JHcm2Xq7zZ8eWQ7","Yazı/ Haber/Yayın":""},{"Alan":"İşçi Direnişi","Başlık":"Kakil Yazar ve Turan Aktaş işe iade direnişi","Yer":"Şişli Belediyesi / İstanbul","Sendika/Dernek/Kurum":"Kentyol AŞ işçileri Kakil Yazar ve Turan Aktaş, dayanışma kurumları","İşkolu":"Belediye Hizmetleri","Neden/Talepler":"Kakil Yazar ve Turan Aktaş, hukuksuz işten çıkarmaların geri alınmasını, kesinleşen mahkeme kararlarının uygulanmasını, işlerine iade edilmelerini ve belediyelerdeki işten çıkarma politikalarının son bulmasını istiyor.","Başlangıç tarihi":"01.11.2019","Zaman/Gün":"Kasım 2019’dan beri, 2.430 günü aşkın süredir devam ediyor.","Eylem biçimi":"Şişli Belediyesi önünde oturma eylemi ve basın açıklamaları yapılıyor, CHP İstanbul İl Başkanlığı ve CHP Genel Merkezi önünde eylemler düzenleniyor, dayanışma ziyaretleri gerçekleştiriliyor.","Durum":"Devam ediyor","Bilgiler":"Şişli Belediyesi iştiraki Kentyol AŞ’de çalışan Kakil Yazar ve Turan Aktaş, belediyedeki işten çıkarmalara karşı çıktıkları süreçte işlerinden çıkarıldı. İşçiler işe iade davalarını kazandı ancak kesinleşen mahkeme kararları uygulanmadı. Kakil Yazar ve Turan Aktaş, işlerine dönene kadar mücadeleyi sürdüreceklerini belirtiyor.","Medya":"","Konum":"https://maps.app.goo.gl/9KZxvM7a5A2NFsRC9","Yazı/ Haber/Yayın":""},{"Alan":"İşçi Direnişi","Başlık":"İzmir Büyükşehir Belediyesi kadrolu işçilerinin toplu sözleşme mücadelesi","Yer":"İzmir Büyükşehir Belediyesi hizmet birimleri / İzmir","Sendika/Dernek/Kurum":"Belediye-İş İzmir 2 No’lu Şube","İşkolu":"Belediye Hizmetleri","Neden/Talepler":"İşçiler, 2026–2028 toplu iş sözleşmesinin talepleri doğrultusunda imzalanmasını, ücret ve sosyal hakların iyileştirilmesini, pazar gününün hafta tatili olarak korunmasını ve kazanılmış hakların geri alınmamasını istiyor.","Başlangıç tarihi":"15.06.2026","Zaman/Gün":"15 Haziran 2026 tarihinden beri, 36. gün. Grev kararı 25 Haziran 2026’da asıldı.","Eylem biçimi":"Belediye birimleri önünde basın açıklamaları yapılıyor, toplu yürüyüşler düzenleniyor ve işyerlerine grev kararı asılıyor.","Durum":"Devam ediyor","Bilgiler":"İzmir Büyükşehir Belediyesinde kadrolu çalışan işçileri kapsayan toplu sözleşme görüşmeleri, ücret ve sosyal hakların yanı sıra pazar tatili konusunda tıkandı. Arabulucu sürecinden sonuç alınamaması üzerine grev kararı asıldı. Taraflar 7 Ağustos 2026’ya kadar anlaşamazsa grevin uygulanması planlanıyor.","Medya":"","Konum":"https://maps.app.goo.gl/Sf9Ds1PzAxB6ddsi8","Yazı/ Haber/Yayın":""},{"Alan":"Hapishane Direnişi","Başlık":"Ekim Polat’ın tedavi hakkı için Songül İlker’in oturma eylemi","Yer":"İstanbul ve Burdur Yüksek Güvenlikli Hapishanesi","Sendika/Dernek/Kurum":"Songül İlker, İHD İstanbul Şubesi Hapishane Komisyonu ve dayanışma kurumları","İşkolu":"Bağımsız","Neden/Talepler":"Songül İlker, akromegali hastası Ekim Polat’ın hastaneye yatırılarak insani koşullarda tedavi edilmesini, gerekli ameliyat ve tetkiklerin yapılmasını, sağlık ve yaşam hakkına yönelik engellerin kaldırılmasını, kötü muamele ve tehditlerin son bulmasını ve ağır hastalığı nedeniyle serbest bırakılmasını istiyor.","Başlangıç tarihi":"11.08.2022","Zaman/Gün":"11 Ağustos 2022 tarihinden beri sürüyor. Güncel paylaşımda oturma eyleminin 1398. gününde olduğu belirtildi.","Eylem biçimi":"İlk olarak Denizli T Tipi Hapishanesi önünde oturma eylemi başlatıldı. Eylem daha sonra İHD İstanbul Şubesine taşındı. Oturma eylemleri, basın açıklamaları, sosyal medya çalışmaları ve İHD’nin F Oturmalarıyla tedavi ve tahliye çağrıları sürdürülüyor.","Durum":"Devam ediyor","Bilgiler":"Ekim Polat’a akromegali teşhisi Çapa Tıp Fakültesinde konuldu. İHD’nin aileden aktardığı bilgilere göre hastalığa bağlı olarak el, ayak, yüz ve iç organlarındaki büyüme yaşamını tehdit edecek seviyeye ulaştı. Beynindeki tümör nedeniyle ameliyat olması gerektiği belirtilmesine rağmen tedavisinin gerçekleştirilmediği, farklı hapishanelere sevk edildiği ve son olarak Burdur Yüksek Güvenlikli Hapishanesi’nde tutulduğu açıklandı. Annesi Songül İlker, oğlunun insani koşullarda tedavi edilmesi için oturma eylemini sürdürüyor.","Medya":"","Konum":"https://maps.app.goo.gl/jxR5ftHbpv5jkLib8","Yazı/ Haber/Yayın":""}];
     const LOCATION_POINTS = {"Gebze / Kocaeli":[{"label":"Gebze, Kocaeli","lng":29.4307,"lat":40.8028}],"Hatay Dörtyol":[{"label":"Dörtyol, Hatay","lng":36.229,"lat":36.839}],"İzmir Kemalpaşa":[{"label":"Kemalpaşa, İzmir","lng":27.417,"lat":38.426}],"İstanbul’daki muayene istasyonları":[{"label":"İstanbul muayene istasyonları","lng":28.9784,"lat":41.0082,"representative":true}],"İzmir Ege Serbest Bölgesi":[{"label":"Ege Serbest Bölgesi, İzmir","lng":27.139,"lat":38.318}],"Ankara Sincan":[{"label":"Sincan, Ankara","lng":32.584,"lat":39.97}],"İstanbul Avcılar, Tokat ve mağaza önleri":[{"label":"Avcılar, İstanbul","lng":28.721,"lat":40.979},{"label":"Tokat","lng":36.5544,"lat":40.3167}],"Tokat, İstanbul, Çorlu hattı":[{"label":"Tokat","lng":36.5544,"lat":40.3167},{"label":"İstanbul","lng":28.9784,"lat":41.0082},{"label":"Çorlu, Tekirdağ","lng":27.8,"lat":41.159}],"İzmir":[{"label":"İzmir","lng":27.1428,"lat":38.4237}],"Bolu / Esenyurt hattı":[{"label":"Bolu","lng":31.606,"lat":40.735},{"label":"Esenyurt, İstanbul","lng":28.675,"lat":41.034}],"İstanbul Şişli":[{"label":"Şişli, İstanbul","lng":28.9872,"lat":41.0605}],"Türkiye geneli":[{"label":"Türkiye geneli","lng":35,"lat":39,"representative":true}],"İstanbul Beşiktaş Belediyesi":[{"label":"Beşiktaş Belediyesi, İstanbul","lng":29.007,"lat":41.042}],"İstanbul Ataşehir Belediyesi":[{"label":"Ataşehir Belediyesi, İstanbul","lng":29.127,"lat":40.992}],"İstanbul":[{"label":"İstanbul","lng":28.9784,"lat":41.0082}],"Mersin Limanı":[{"label":"Mersin Limanı","lng":34.64,"lat":36.8}],"Bursa":[{"label":"Bursa","lng":29.06,"lat":40.195}],"Denizli":[{"label":"Denizli","lng":29.0864,"lat":37.7765}],"Türkiye geneli, özellikle İstanbul":[{"label":"Türkiye geneli","lng":35,"lat":39,"representative":true},{"label":"İstanbul","lng":28.9784,"lat":41.0082}],"İstanbul Esenyurt / Maslak":[{"label":"Esenyurt, İstanbul","lng":28.675,"lat":41.034},{"label":"Maslak, İstanbul","lng":29.02,"lat":41.109}],"Esenyurt, Adana, Bursa, Ankara ve farklı depolar":[{"label":"Esenyurt, İstanbul","lng":28.675,"lat":41.034},{"label":"Adana","lng":35.3213,"lat":37},{"label":"Bursa","lng":29.06,"lat":40.195},{"label":"Ankara","lng":32.8597,"lat":39.9334}],"Tuzla / Sedef Tersanesi":[{"label":"Tuzla, İstanbul","lng":29.303,"lat":40.816}],"Edirne Uzunköprü / Tekirdağ hattı":[{"label":"Uzunköprü, Edirne","lng":26.686,"lat":41.267},{"label":"Tekirdağ","lng":27.511,"lat":40.978}],"Eskişehir Mihalıççık / Ankara / Beypazarı hattı":[{"label":"Mihalıççık, Eskişehir","lng":31.499,"lat":39.865},{"label":"Ankara","lng":32.8597,"lat":39.9334},{"label":"Beypazarı, Ankara","lng":31.921,"lat":40.167}],"Ankara ve farklı kentler":[{"label":"Ankara","lng":32.8597,"lat":39.9334},{"label":"Farklı kentler","lng":35,"lat":39,"representative":true}],"Türkiye geneli, büyük şantiyeler":[{"label":"Türkiye geneli, büyük şantiyeler","lng":35,"lat":39,"representative":true}],"İstanbul Galatasaray Meydanı":[{"label":"Galatasaray Meydanı, İstanbul","lng":28.976,"lat":41.032}],"Gebze Kent Meydanı":[{"label":"Gebze Kent Meydanı","lng":29.431,"lat":40.798}],"Türkiye geneli, S tipi, Y tipi ve yüksek güvenlikli hapishaneler":[{"label":"Türkiye geneli, hapishaneler","lng":35,"lat":39,"representative":true}],"Ankara Kurtuluş Parkı / Kızılay hattı":[{"label":"Kurtuluş Parkı, Ankara","lng":32.86,"lat":39.929},{"label":"Kızılay, Ankara","lng":32.8541,"lat":39.9208}],"Marmara 6 No’lu L Tipi / Silivri hattı":[{"label":"Silivri, İstanbul","lng":28.221,"lat":41.073}],"Giresun, Görele Karlıbel / Tirebolu Sekü / Çanakçı hattı":[{"label":"Giresun","lng":38.3895,"lat":40.9128},{"label":"Görele, Giresun","lng":39.003,"lat":41.03},{"label":"Tirebolu, Giresun","lng":38.814,"lat":41.006},{"label":"Çanakçı, Giresun","lng":39.05,"lat":40.912}],"Ordu, Aybastı / Korgan / Kabataş / yayla hattı":[{"label":"Ordu","lng":37.879,"lat":40.984},{"label":"Aybastı, Ordu","lng":37.4,"lat":40.686},{"label":"Korgan, Ordu","lng":37.346,"lat":40.824},{"label":"Kabataş, Ordu","lng":37.449,"lat":40.757}],"Muğla Milas":[{"label":"Milas, Muğla","lng":27.783,"lat":37.312}],"Muş Varto ve Bingöl Karlıova":[{"label":"Varto, Muş","lng":41.455,"lat":39.173},{"label":"Karlıova, Bingöl","lng":41.013,"lat":39.298}],"Diyarbakır Lice ve çevresi":[{"label":"Lice, Diyarbakır","lng":40.646,"lat":38.459}],"Mardin ve ilçeleri":[{"label":"Mardin","lng":40.735,"lat":37.312,"representative":true}],"Mersin Toroslar / Yenişehir hattı":[{"label":"Toroslar, Mersin","lng":34.581,"lat":36.844},{"label":"Yenişehir, Mersin","lng":34.588,"lat":36.798}],"Şırnak, Besta / Cudi / Gabar hattı":[{"label":"Şırnak","lng":42.454,"lat":37.518},{"label":"Besta hattı","lng":42.3,"lat":37.65,"representative":true},{"label":"Cudi hattı","lng":42.15,"lat":37.37,"representative":true},{"label":"Gabar hattı","lng":42.7,"lat":37.47,"representative":true}],"Bingöl, özellikle Karlıova hattı":[{"label":"Bingöl","lng":40.496,"lat":38.884},{"label":"Karlıova, Bingöl","lng":41.013,"lat":39.298}],"Çorum ve ilçeleri":[{"label":"Çorum","lng":34.955,"lat":40.55,"representative":true}],"Meksika, özellikle Mexico City":[{"label":"Mexico City, Meksika","lng":-99.1332,"lat":19.4326}],"Bolivya geneli":[{"label":"Bolivya geneli","lng":-63.5887,"lat":-16.2902,"representative":true}],"Norveç açık deniz petrol sektörü":[{"label":"Norveç açık deniz petrol sahası","lng":2.5,"lat":60.8,"representative":true}],"Avustralya Darwin ve offshore tesisleri":[{"label":"Darwin, Avustralya","lng":130.8456,"lat":-12.4634},{"label":"Darwin offshore tesisleri","lng":130,"lat":-12,"representative":true}],"Avustralya Batı Avustralya":[{"label":"Port Hedland, Batı Avustralya","lng":118.6,"lat":-20.31}],"Çekya":[{"label":"Prag, Çekya","lng":14.4378,"lat":50.0755,"representative":true}],"Portekiz geneli":[{"label":"Portekiz geneli","lng":-8,"lat":39.5,"representative":true}],"İngiltere":[{"label":"İngiltere","lng":-1.1743,"lat":52.3555,"representative":true}],"İngiltere Londra":[{"label":"Londra, İngiltere","lng":-0.1278,"lat":51.5074}],"Güney Kore Pangyo":[{"label":"Pangyo, Güney Kore","lng":127.111,"lat":37.394}],"Kolombiya":[{"label":"Kolombiya","lng":-74.2973,"lat":4.5709,"representative":true}],"Demokratik Kongo Cumhuriyeti":[{"label":"Tenke Fungurume hattı, DRC","lng":26.167,"lat":-10.583,"representative":true}],"Moğolistan, Gobi / Çin sınırı":[{"label":"Gobi / Çin sınırı, Moğolistan","lng":107.4,"lat":42.6,"representative":true}],"Kolombiya, Arjantin, DRC, Peru, Brezilya, Güney Afrika":[{"label":"Kolombiya","lng":-74.2973,"lat":4.5709,"representative":true},{"label":"Arjantin","lng":-63.6167,"lat":-38.4161,"representative":true},{"label":"DRC","lng":21.7587,"lat":-4.0383,"representative":true},{"label":"Peru","lng":-75.0152,"lat":-9.19,"representative":true},{"label":"Brezilya","lng":-51.9253,"lat":-14.235,"representative":true},{"label":"Güney Afrika","lng":22.9375,"lat":-30.5595,"representative":true}],"Londra AGM hattı, Moğolistan, Madagaskar, Sırbistan, Arizona bağlantıları":[{"label":"Londra AGM hattı","lng":-0.1278,"lat":51.5074,"representative":true},{"label":"Moğolistan","lng":103.8467,"lat":46.8625,"representative":true},{"label":"Madagaskar","lng":46.8691,"lat":-18.7669,"representative":true},{"label":"Sırbistan","lng":21.0059,"lat":44.0165,"representative":true},{"label":"Arizona, ABD","lng":-111.0937,"lat":34.0489,"representative":true}],"Şili Atacama / Salar de Maricunga":[{"label":"Salar de Maricunga, Atacama","lng":-69.08,"lat":-26.85,"representative":true}],"Brezilya Minas Gerais / Jequitinhonha":[{"label":"Jequitinhonha, Minas Gerais","lng":-41,"lat":-16.43,"representative":true}],"Brezilya Grota do Cirilo madeni":[{"label":"Grota do Cirilo, Brezilya","lng":-41.76,"lat":-16.61,"representative":true}],"ABD Nevada":[{"label":"Nevada, ABD","lng":-116.9283,"lat":39.5296,"representative":true}],"Afyonkarahisar":[{"label":"Afyonkarahisar","lng":30.5567,"lat":38.7507,"representative":true}]};
     const PREF_KEY = "sinif-atlasi-tercihler";
     const HIDDEN_MEDIA_KEY = "sinif-atlasi-gizli-medya";
     const MEDIA_CACHE_KEY = "sinif-atlasi-medya-onbellek";
-    // Sürüm numarası: geocode/çözümleme mantığı köklü değişince (ör. Konum
-    // linklerinin ayrıştırılma şekli değiştiğinde) bunu artırın — eski
-    // "başarısız" önbellek kayıtları yeni mantıkla hâlâ geçerliymiş gibi
-    // 24 saat retry'ı bloke etmesin diye TÜM tarayıcılarda temiz başlangıç
-    // sağlar (başarılı sonuçlar zaten Cloudflare kenar önbelleğinde kalıcı
-    // olduğu için bu neredeyse anında yeniden dolar).
+    const DATA_CACHE_KEY = "sinif-atlasi-son-basarili-tablo-v1";
+    // Başarısız geocode denemelerinin sürümü ayrı tutulur; böylece eski
+    // "çözülemedi" önbelleği yeni çözümleme mantığını 24 saat kilitlemez,
+    // ama daha önce bulunan doğru kısa Google Maps koordinatları korunur.
     const GEOCODE_CACHE_KEY = "sinif-atlasi-adres-konum-v2";
+    const GEOCODE_FAILURE_VERSION = 3;
+    const SEEDED_LOCATION_POINT_LIST = [{"key":"https://maps.app.goo.gl/qL83sjnENX5u2ppt7","aliases":[],"label":"Yolbulan Metal San. ve Tic. A.Ş.","lat":36.7878112,"lng":36.2118398,"source":"google-link"},{"key":"https://maps.app.goo.gl/CcZhu3f9HG1hVHP1A","aliases":[],"label":"Temel Conta","lat":38.4345747,"lng":27.2338065,"source":"google-link"},{"key":"https://maps.app.goo.gl/ZY1PRSsFS3uwF3G27","aliases":[],"label":"TÜVTÜRK Araç Muayene İstasyonu","lat":41.0914521,"lng":28.5067223,"source":"google-link"},{"key":"https://maps.app.goo.gl/D4XTk9kuNsUwjKLv8","aliases":[],"label":"Tapeten Mensucat","lat":39.9711307,"lng":32.5684525,"source":"google-link"},{"key":"https://maps.app.goo.gl/eyZet7juazJedonR8","aliases":[],"label":"EROĞLU MODA TEKSTİL SANAYİ VE TİC AŞ","lat":41.0085007,"lng":28.7033748,"source":"google-link"},{"key":"https://maps.app.goo.gl/t6sahuup8jVVv8Me7","aliases":[],"label":"Digel Tekstil","lat":38.3356357,"lng":27.1194461,"source":"google-link"},{"key":"https://maps.app.goo.gl/JPXc6yvbbMgVaGgHA","aliases":[],"label":"BARTATEKS TEKSTİL KONF.İNŞ.SAN.VE TİC.LTD.ŞTİ.","lat":38.3126991,"lng":27.1673763,"source":"google-link"},{"key":"https://maps.app.goo.gl/wcgiA4i9dPg7ddhh7","aliases":[],"label":"Gezer Ayakkabı Deri Sanayi ve Tic. A.Ş. - Genel Müdürlük","lat":41.0365611,"lng":28.6256209,"source":"google-link"},{"key":"https://maps.app.goo.gl/5juLUm4qSZFu2V9e7","aliases":[],"label":"ŞİŞLİ BELEDİYESİ EK HİZMET BİNASI","lat":41.0642663,"lng":28.9813495,"source":"google-link"},{"key":"https://maps.app.goo.gl/BcongDRbh6swc2GQ8","aliases":[],"label":"Beşiktaş Belediyesi","lat":41.0748042,"lng":29.0194974,"source":"google-link"},{"key":"https://maps.app.goo.gl/G8sHsJZstuXmbGcN8","aliases":[],"label":"T.C. İstanbul Büyükşehir Belediyesi Başkanlığı","lat":41.0134947,"lng":28.9552083,"source":"google-link"},{"key":"https://maps.app.goo.gl/hKfhtP7Zx4Uib1b69","aliases":[],"label":"Mersin Uluslararası Liman İşletmeciliği AŞ","lat":36.7999325,"lng":34.6360452,"source":"google-link"},{"key":"https://maps.app.goo.gl/XFyLZvBeCtp4UPda9","aliases":[],"label":"Aksa Doğalgaz Bursa - Müşteri Hizmetleri Merkezi","lat":40.2326243,"lng":28.9830068,"source":"google-link"},{"key":"https://maps.app.goo.gl/vtUxXtLLZpKrTyCQ9","aliases":[],"label":"Trendyol Express Horoz Şube","lat":37.7649404,"lng":29.1012343,"source":"google-link"},{"key":"https://maps.app.goo.gl/ozgP8DA7bEnZVfus8","aliases":[],"label":"Özel Sektör Öğretmenleri Sendikası","lat":39.919619,"lng":32.859601,"source":"google-link"},{"key":"https://maps.app.goo.gl/A6QrytMzG6SsX3WX7","aliases":[],"label":"GALATASARAY MEYDANI","lat":41.0333253,"lng":28.9771365,"source":"google-link"},{"key":"https://maps.app.goo.gl/Eru8fqXRSjwH6FCF8","aliases":[],"label":"Gebze Kent Meydanı","lat":40.798966,"lng":29.4307302,"source":"google-link"},{"key":"https://maps.app.goo.gl/P4HCHExNtLxNxR776","aliases":[],"label":"Grand Kartal Otel","lat":40.5904287,"lng":31.8072258,"source":"google-link"},{"key":"https://maps.app.goo.gl/TPqvVRcCHTViyMUo6","aliases":[],"label":"Coşkunlar Havai Fişek","lat":40.736994,"lng":30.4045448,"source":"google-link"},{"key":"https://maps.app.goo.gl/ToqRgj7CpY2DLqmE6","aliases":[],"label":"Masquerade Club","lat":41.065467,"lng":29.008464,"source":"google-link"},{"key":"https://maps.app.goo.gl/RNjBydrJ2qXFTbyn8","aliases":[],"label":"Bodrum S Tipi Kapalı Ceza İnfaz Kurumu Müdürlüğü","lat":37.0978579,"lng":27.6485231,"source":"google-link"},{"key":"https://maps.app.goo.gl/kcekS5czChQJN4EBA","aliases":[],"label":"Kurtuluş Parkı","lat":39.9274396,"lng":32.864004,"source":"google-link"},{"key":"https://maps.app.goo.gl/RmWGNW8mWuUejiMT6","aliases":[],"label":"Silivri 6 Nolu L Tipi Kapalı Ceza İnfaz Kurumu","lat":41.0904287,"lng":28.1520812,"source":"google-link"},{"key":"https://maps.app.goo.gl/LebF4e9t9wz53FY89","aliases":[],"label":"Sekü, Cami, 28502 Sekü/Tirebolu/Giresun","lat":40.853134,"lng":38.894208,"source":"google-link"},{"key":"Aybastı, Korgan, Kabataş ve yayla alanları / Ordu","aliases":[],"label":"Aybastı-Korgan-Kabataş yayla hattı / Ordu","lat":40.7282678,"lng":37.3275148,"source":"listed-address"},{"key":"https://maps.app.goo.gl/dSSRwRgU6wPAqrMT6","aliases":[],"label":"Akbelen Ormanı","lat":37.1777581,"lng":27.8466806,"source":"google-link"},{"key":"https://maps.app.goo.gl/xkqbcUzPYHtVLCzZ8","aliases":[],"label":"Varto, Muş","lat":39.173291,"lng":41.455974,"source":"google-link"},{"key":"https://maps.app.goo.gl/pWzaVQbABgL6Pxxn6","aliases":[],"label":"Lice, Diyarbakır","lat":38.453188,"lng":40.652057,"source":"google-link"},{"key":"Mardin ve ilçeleri","aliases":[],"label":"Mardin","lat":37.3442929,"lng":40.6196487,"source":"listed-address"},{"key":"https://maps.app.goo.gl/wo3RxdmL78AQ9Vm89","aliases":[],"label":"Arslanköy","lat":37.018431,"lng":34.307207,"source":"google-link"},{"key":"https://maps.app.goo.gl/UcRSyxCjyQNWEYdd8","aliases":[],"label":"Besta Sk., 73200 Cizre/Şırnak","lat":37.328936,"lng":42.1738459,"source":"google-link"},{"key":"https://maps.app.goo.gl/ECige4oXMKsJCwmd9","aliases":[],"label":"Karlıova, Bingöl","lat":39.297996,"lng":41.014368,"source":"google-link"},{"key":"https://maps.app.goo.gl/eFUz1kj3mEnVHkKB7","aliases":[],"label":"Destine Hatun Kız Öğrenci Yurdu","lat":38.825238,"lng":30.5366968,"source":"google-link"},{"key":"https://maps.app.goo.gl/SHCrKbAPmyZKvXGJ6","aliases":[],"label":"Teşvikiye, Hüsrev Gerede Cd. No: 88/2, 34365 Şişli/İstanbul","lat":41.0481956,"lng":28.9954674,"source":"google-link"},{"key":"https://maps.app.goo.gl/dfU3BhzrEKkMoE4t6","aliases":[],"label":"İstanbul Üniversitesi İstanbul Tıp Fakültesi","lat":41.0164399,"lng":28.9333376,"source":"google-link"},{"key":"https://maps.app.goo.gl/JomKxZcSQA259x6Q9","aliases":[],"label":"Eti Gümüş Maden Fabr.","lat":38.391257,"lng":39.669764,"source":"google-link"},{"key":"https://maps.app.goo.gl/6yt4t54Wdc8XG18c6","aliases":[],"label":"Tatbak Gıda Sanayi Ticaret Limited Şirketi","lat":40.8956522,"lng":29.2585221,"source":"google-link"},{"key":"https://maps.app.goo.gl/8rj9FX7sApwyFFEC7","aliases":[],"label":"Assu","lat":40.5748672,"lng":30.8548107,"source":"google-link"},{"key":"https://maps.app.goo.gl/2bUyebydeTWKjP2u5","aliases":[],"label":"Çorlu","lat":41.177635,"lng":27.7784425,"source":"google-link"},{"key":"https://maps.app.goo.gl/sBnWhE3YiswkTpY4A","aliases":[],"label":"TTK Amasra Müessese Müdürlüğü","lat":41.74784,"lng":32.385568,"source":"google-link"},{"key":"https://maps.app.goo.gl/J9ptzqMpkcYgEuXM9","aliases":[],"label":"Soma 301 Madenci Şehitliği","lat":39.1773189,"lng":27.64426,"source":"google-link"},{"key":"https://maps.app.goo.gl/RubRcxircHy2TmFZA","aliases":[],"label":"Çöpler Altın Madeni","lat":39.4447136,"lng":38.5341584,"source":"google-link"},{"key":"https://maps.app.goo.gl/opEQ3uRf12u5Vpya6","aliases":[],"label":"T.C. Adalet Bakanlığı","lat":39.9181421,"lng":32.8521359,"source":"google-link"},{"key":"https://maps.app.goo.gl/gLCU7i6EvkwReuHFA","aliases":[],"label":"Turnalık yaylası","lat":40.6665709,"lng":37.2662116,"source":"google-link"},{"key":"https://maps.app.goo.gl/ypAXsqqXsSkTqY2o6","aliases":[],"label":"Arslanköy, 33250 Toroslar/Mersin","lat":37.018568,"lng":34.289681,"source":"google-link"},{"key":"https://maps.app.goo.gl/ZhhcqE7H4LGir9eD6","aliases":[],"label":"Fugo Yer Hizmetleri AŞ","lat":41.065865,"lng":29.0035922,"source":"google-link"},{"key":"https://maps.app.goo.gl/VyTj8PY9x3mBRt5t6","aliases":[],"label":"İbb Ek Hizmet Binası","lat":41.013401,"lng":28.9660522,"source":"google-link"},{"key":"https://maps.app.goo.gl/wBbZ7Wsc3KABuyC89","aliases":[],"label":"İnceğiz, 07900 Gazipaşa/Antalya","lat":36.335211,"lng":32.345413,"source":"google-link"},{"key":"https://maps.app.goo.gl/urfoX93z1sE9d39i8","aliases":[],"label":"Silivri 6 Nolu L Tipi Kapalı Ceza İnfaz Kurumu","lat":41.0904287,"lng":28.1520812,"source":"google-link"},{"key":"https://maps.app.goo.gl/GZVChr1mgJyKn1abA","aliases":[],"label":"Sallar, Ergani/Diyarbakır","lat":38.270784,"lng":39.677666,"source":"google-link"},{"key":"https://maps.app.goo.gl/8gTftSmT4jm5AYxJ8","aliases":[],"label":"Cennetpınarı, 46800 Türkoğlu/Kahramanmaraş","lat":37.3120499,"lng":37.0075901,"source":"google-link"},{"key":"https://maps.app.goo.gl/MeGDxDU6L1Dx9osb8","aliases":[],"label":"Fındıklı, Rize","lat":41.2706609,"lng":41.140057,"source":"google-link"},{"key":"https://maps.app.goo.gl/pFi9NdHGWX7DQ3Sh7","aliases":[],"label":"Karakaya, 19302 Karakaya/Sungurlu/Çorum","lat":40.25614,"lng":34.62701,"source":"google-link"},{"key":"https://maps.app.goo.gl/NE9GS3cvQzp7Ken89","aliases":[],"label":"Gümüşhacıköy, Amasya","lat":40.873622,"lng":35.2159369,"source":"google-link"},{"key":"https://maps.app.goo.gl/dNxeQ2yG3bSY6tuo6","aliases":[],"label":"Ovacık, Pulur, 62900 Ovacık/Tunceli","lat":39.357044,"lng":39.216588,"source":"google-link"},{"key":"https://www.google.com/maps/search/?api=1\u0026query=Sat%C4%B1c%C4%B1lar+K%C3%B6y%C3%BC+Diyadin+A%C4%9Fr%C4%B1","aliases":["Satıcılar Köyü Diyadin Ağrı"],"label":"Satıcılar Köyü, Diyadin / Ağrı","lat":39.634093,"lng":43.652441,"source":"listed-address"},{"key":"https://www.google.com/maps/search/?api=1\u0026query=Ye%C5%9Filal%C4%B1%C3%A7+Mahallesi+Saray+Van","aliases":["Yeşilalıç Mahallesi Saray Van"],"label":"Yeşilağaç, Saray / Van","lat":38.4386,"lng":44.0216,"source":"listed-address"},{"key":"https://maps.app.goo.gl/y1bbuTXUin14dphu9","aliases":[],"label":"Karagöz, 62702 Karagöz/Pülümür/Tunceli","lat":39.443907,"lng":39.6818951,"source":"google-link"},{"key":"https://maps.app.goo.gl/ECTANoVS8VB3A6hq8","aliases":[],"label":"TYH Tekstil A.Ş. Akhisar OSB İşletmesi","lat":38.8940105,"lng":27.7387727,"source":"google-link"},{"key":"https://maps.app.goo.gl/DNtbQNVSqK4u7M97A","aliases":[],"label":"Bizden Giyim","lat":38.437982,"lng":27.266401,"source":"google-link"},{"key":"https://maps.app.goo.gl/UrHyD4ksinjd8nH27","aliases":[],"label":"T.C. Van Büyükşehir Belediyesi","lat":38.4910134,"lng":43.4038643,"source":"google-link"},{"key":"https://maps.app.goo.gl/o4JHcm2Xq7zZ8eWQ7","aliases":[],"label":"Torbalı Belediyesi","lat":38.153703,"lng":27.356817,"source":"google-link"},{"key":"https://maps.app.goo.gl/9KZxvM7a5A2NFsRC9","aliases":[],"label":"Şişli Belediye Başkanlığı","lat":41.0642751,"lng":28.9832604,"source":"google-link"},{"key":"https://maps.app.goo.gl/Sf9Ds1PzAxB6ddsi8","aliases":[],"label":"İzmir Büyükşehir Belediyesi","lat":38.4251436,"lng":27.1442423,"source":"google-link"},{"key":"https://maps.app.goo.gl/jxR5ftHbpv5jkLib8","aliases":[],"label":"Esentepe, İstanbul Adliyesi, 34394 Şişli/İstanbul","lat":41.0800249,"lng":29.0104397,"source":"google-link"}];
+    const DATA_REFRESH_MS = 15 * 60 * 1000;
     const MEDIA_CACHE_MAX_AGE_MS = 6 * 60 * 60 * 1000;
+    const DATA_CACHE_MAX_AGE_MS = DATA_REFRESH_MS;
     const MEDIA_REFRESH_MS = 90000;
     const MEDIA_PREFETCH_LIMIT = 10;
     const MEDIA_PREFETCH_DELAY_MS = 400;
@@ -3781,6 +3891,7 @@
       method: "Eylem biçimi",
       status: "Durum",
       latest: "Bilgiler",
+      media: "Medya",
       pressLinks: "Yazı/ Haber"
     };
 
@@ -3793,11 +3904,9 @@
       detailPanel: document.getElementById("detailPanel"),
       visibleCount: document.getElementById("visibleCount"),
       activeCount: document.getElementById("activeCount"),
+      fitFiltered: document.getElementById("fitFiltered"),
       caseTitle: document.getElementById("caseTitle"),
       caseMeta: document.getElementById("caseMeta"),
-      fitFiltered: document.getElementById("fitFiltered"),
-      focusTurkey: document.getElementById("focusTurkey"),
-      reloadPage: document.getElementById("reloadPage"),
       closePanel: document.getElementById("closePanel"),
       favoriteCase: document.getElementById("favoriteCase"),
       downloadCase: document.getElementById("downloadCase"),
@@ -3834,8 +3943,8 @@
     // böylece veri (liste, istatistik, detay) Leaflet'i beklemeden anında görünür.
     // Leaflet gelirse aşağıda gerçek haritaya yükseltilir; hiç gelmezse mesaj kalır.
     let HAS_LEAFLET = false;
-    let MAP_LOAD_REQUESTED = false;
     let map, markerLayer;
+    const MAP_PAN_BOUNDS = [[10, -10], [62, 80]];
     function installStubMap() {
       const noop = function () { return noopLayer; };
       const noopLayer = { addLayers: noop, clearLayers: noop, addLayer: noop, addTo: noop, removeLayer: noop };
@@ -3860,7 +3969,13 @@
       let layer = null;
       function place() {
         const src = TILE_SOURCES[idx];
-        const opts = { maxZoom: 19, attribution: src.attr };
+        const opts = {
+          maxZoom: 19,
+          attribution: src.attr,
+          keepBuffer: isMobileExperience() ? 4 : 2,
+          updateWhenIdle: isMobileExperience(),
+          updateWhenZooming: !isMobileExperience()
+        };
         if (src.sub) opts.subdomains = src.sub;
         layer = L.tileLayer(src.url, opts);
         let errCount = 0;
@@ -3883,64 +3998,11 @@
       if (mapEl && !mapEl.querySelector(".map-fallback-msg")) {
         mapEl.innerHTML = '<div class="map-fallback-msg" style="display:flex;align-items:center;justify-content:center;height:100%;padding:24px;text-align:center;color:var(--muted);font-size:14px;line-height:1.5">Harita katmanı yüklenemedi (ağ/CDN erişimi engellenmiş olabilir).<br>Mücadele kayıtları ve tüm veriler soldaki listede ve panelde görüntülenmeye devam ediyor.</div>';
       }
-      if (els.fitFiltered) {
-        els.fitFiltered.textContent = "Haritayı tekrar dene";
-        els.fitFiltered.disabled = false;
-      }
     }
 
-    function setMapButtonsLoaded() {
-      if (els.fitFiltered) {
-        els.fitFiltered.textContent = "Görüneni Sığdır";
-        els.fitFiltered.disabled = false;
-      }
-      if (els.focusTurkey) {
-        els.focusTurkey.textContent = "Türkiye";
-        els.focusTurkey.disabled = false;
-      }
-    }
-
-    function showMapDeferred() {
-      const mapEl = document.getElementById("map");
-      if (mapEl && !mapEl.querySelector(".map-deferred-msg")) {
-        mapEl.innerHTML = `
-          <div class="map-deferred-msg">
-            <div>
-              <strong>Mobil hızlı mod</strong>
-              <span>Harita Android'de sayfayı kilitlemesin diye isteğe bağlı yüklenir. Liste ve detaylar tam çalışır.</span>
-            </div>
-          </div>
-        `;
-      }
-      if (els.fitFiltered) {
-        els.fitFiltered.textContent = "Haritayı yükle";
-        els.fitFiltered.disabled = false;
-      }
-      if (els.focusTurkey && !HAS_LEAFLET) {
-        els.focusTurkey.textContent = "Veriyi yenile";
-        els.focusTurkey.disabled = false;
-      }
-    }
-
-    function requestMapLoad() {
-      if (HAS_LEAFLET) {
-        fitFiltered();
-        return;
-      }
-      MAP_LOAD_REQUESTED = true;
-      if (els.fitFiltered) {
-        els.fitFiltered.textContent = "Harita yükleniyor";
-        els.fitFiltered.disabled = true;
-      }
-      if (typeof window.__loadLeaflet !== "function") {
-        showMapUnavailable();
-        return;
-      }
-      window.__leafletReady = window.__loadLeaflet();
-      window.__leafletReady.then(function (ok) {
-        if (ok) upgradeToRealMap();
-        else showMapUnavailable();
-      }).catch(showMapUnavailable);
+    function setMapPopupOpen(open) {
+      const stage = document.querySelector(".map-stage");
+      if (stage) stage.classList.toggle("has-map-popup", Boolean(open));
     }
 
     let mobileMapMode = null;
@@ -3954,14 +4016,20 @@
         if (enabled && typeof handler.enable === "function") handler.enable();
         if (!enabled && typeof handler.disable === "function") handler.disable();
       };
-      // Mobilde harita parmak hareketini sahiplenmesin; sayfa kaydırması her
-      // zaman kazanır. Masaüstünde normal harita etkileşimi açık kalır.
-      setHandler(map.dragging, !mobile);
-      setHandler(map.touchZoom, !mobile);
-      setHandler(map.doubleClickZoom, !mobile);
+      const mapEl = map.getContainer();
+      if (mapEl) {
+        mapEl.classList.add("is-map-interactive");
+        mapEl.style.touchAction = "none";
+        mapEl.style.msTouchAction = "none";
+        mapEl.style.overscrollBehavior = "contain";
+      }
+      setHandler(map.dragging, true);
+      setHandler(map.scrollWheelZoom, true);
+      setHandler(map.touchZoom, true);
+      setHandler(map.doubleClickZoom, true);
       setHandler(map.boxZoom, !mobile);
       setHandler(map.keyboard, !mobile);
-      setHandler(map.tap, !mobile);
+      setHandler(map.tap, true);
     }
 
     // Leaflet hazır olunca gerçek haritayı kur ve yeniden çiz.
@@ -3972,24 +4040,27 @@
       const mapEl = document.getElementById("map");
       if (mapEl) mapEl.innerHTML = "";
       const mobile = isMobileExperience();
-      // Harita şimdilik yalnızca Türkiye sınırları içinde çalışır — dünya
-      // görünümüne kaydırma/yakınlaştırma engellenir.
+      // Harita Türkiye odağında kalır; sınır düşük zoom ve mobil görünümde
+      // sürükleme alanı kalacak kadar geniş tutulur.
       map = L.map("map", {
         zoomControl: true,
-        dragging: !mobile,
-        touchZoom: !mobile,
-        doubleClickZoom: !mobile,
+        dragging: true,
+        touchZoom: true,
+        doubleClickZoom: true,
         boxZoom: !mobile,
         keyboard: !mobile,
-        tap: !mobile,
+        tap: true,
+        scrollWheelZoom: true,
+        wheelDebounceTime: 32,
+        wheelPxPerZoomLevel: 80,
         preferCanvas: true,
         fadeAnimation: !mobile,
         zoomAnimation: !mobile,
         markerZoomAnimation: !mobile,
         inertia: !mobile,
         worldCopyJump: false,
-        maxBounds: [[33, 20], [45, 48]],
-        maxBoundsViscosity: 1,
+        maxBounds: MAP_PAN_BOUNDS,
+        maxBoundsViscosity: 0.85,
         minZoom: 5,
         attributionControl: false
       }).setView([39, 35], 6);
@@ -4008,15 +4079,21 @@
           })
         : L.layerGroup();
       map.addLayer(markerLayer);
+      map.on("popupopen", () => setMapPopupOpen(true));
+      map.on("popupclose", () => setMapPopupOpen(false));
+      map.on("click", closeDetailFromMapBackground);
       syncMapInteractionMode();
-      setMapButtonsLoaded();
-      // Veriler zaten yüklendiyse marker'ları çiz ve görünümü sığdır.
-      try { if (typeof render === "function" && cases && cases.length) { render(); } } catch (e) {}
+      // Veriler zaten yüklendiyse marker'ları çiz; görünüm yalnızca kullanıcı
+      // "Görüneni Sığdır" düğmesine bastığında değiştirilir.
+      try {
+        if (typeof render === "function" && cases && cases.length) {
+          render();
+          scheduleMissingGeocodeRefresh();
+        }
+      } catch (e) {}
     }
 
-    if (isMobileExperience() && !MAP_LOAD_REQUESTED) {
-      showMapDeferred();
-    } else if (window.__leafletReady && typeof window.__leafletReady.then === "function") {
+    if (window.__leafletReady && typeof window.__leafletReady.then === "function") {
       window.__leafletReady.then(function (ok) {
         if (ok) { upgradeToRealMap(); } else { showMapUnavailable(); }
       });
@@ -4047,11 +4124,16 @@
     let mediaWarmTimer = null;
     let mediaWarmBusy = false;
     let mediaWarmQueue = [];
+    let socialPreviewWarmTimer = null;
+    let socialPreviewWarmBusy = false;
+    let socialPreviewWarmQueue = [];
+    const socialPreviewPromises = new Map();
     let mediaAutoRefreshTimer = null;
     let mediaFetchPromises = new Map();
     let summaryRequestToken = 0;
     let filtersReady = false;
     let baseRows = [];
+    let activeRowsFingerprint = "";
     let refreshTimer = null;
     let durationRefreshTimer = null;
     let lastDurationDayKey = "";
@@ -4234,14 +4316,14 @@
 
     function durationClaim(row) {
       const duration = resistanceDuration(row);
-      return duration ? claim("İşçiler Kaç Gündür Direniyor?", `${duration.detail}${duration.startLabel ? ` (${duration.startLabel} başlangıç)` : ""}`) : "";
+      return duration ? claim("Kaç Gündür Direniliyor?", `${duration.detail}${duration.startLabel ? ` (${duration.startLabel} başlangıç)` : ""}`) : "";
     }
 
     function durationSnapshot(row) {
       const duration = resistanceDuration(row);
       return duration ? `
             <div>
-              <span>İşçiler Kaç Gündür Direniyor?</span>
+              <span>Kaç Gündür Direniliyor?</span>
               <strong>${esc(duration.label)}</strong>
             </div>` : "";
     }
@@ -4501,8 +4583,38 @@
       return [raw];
     }
 
+    function mapLocationEntriesFor(row) {
+      const entries = konumEntriesFor(row);
+      if (entries.length) return entries;
+      const place = humanLocationText(value(row, fields.location));
+      return place && place.length >= 3 ? [place] : [];
+    }
+
     function konumRawUrlsFor(row) {
       return konumEntriesFor(row).filter((entry) => /^https?:\/\//i.test(entry));
+    }
+
+    function decodeLocationText(text) {
+      let value = String(text || "").trim();
+      if (!value) return "";
+      if (/%[0-9a-f]{2}|\+/i.test(value)) {
+        try {
+          value = decodeURIComponent(value.replace(/\+/g, " "));
+        } catch (e) {
+          value = value.replace(/\+/g, " ");
+        }
+      }
+      return value
+        .replace(/\s+/g, " ")
+        .replace(/\s*,\s*/g, ", ")
+        .trim();
+    }
+
+    function humanLocationText(text) {
+      const value = String(text || "").trim();
+      if (!value) return "";
+      if (/^https?:\/\//i.test(value)) return extractAddressFromEntry(value);
+      return decodeLocationText(value);
     }
 
     // Bir "Konum" girdisi bir Google Haritalar arama linkiyse (…/maps/search/
@@ -4515,125 +4627,151 @@
         try {
           const url = new URL(text);
           const q = url.searchParams.get("query") || url.searchParams.get("q");
-          if (q) return q.trim();
+          if (q) return decodeLocationText(q);
         } catch (e) {}
       }
-      return text;
+      return decodeLocationText(text);
     }
 
     function konumTextFor(row) {
-      return extractAddressFromEntry(konumEntriesFor(row)[0] || "");
+      return extractAddressFromEntry(konumEntriesFor(row)[0] || value(row, fields.location) || "");
+    }
+
+    function exactCoordinate(latRaw, lngRaw, label = "", source = "direct-coordinate") {
+      const lat = Number(String(latRaw).replace(",", "."));
+      const lng = Number(String(lngRaw).replace(",", "."));
+      if (!isPlausibleCoord(lat, lng)) return null;
+      const point = { lat, lng, source, exact: true };
+      const cleanLabel = humanLocationText(label || "");
+      if (cleanLabel) point.label = cleanLabel;
+      return point;
+    }
+
+    function parseCoordPair(text, label = "") {
+      const pair = String(text || "").match(/^\s*(-?\d{1,3}(?:[.,]\d+)?)\s*[,;]\s*(-?\d{1,3}(?:[.,]\d+)?)\s*$/);
+      return pair ? exactCoordinate(pair[1], pair[2], label) : null;
     }
 
     // Bir metinde/linkte doğrudan gömülü koordinat varsa (Google'ın çözülmüş
-    // "…/@enlem,boylam,…" ya da "…!3denlem!4dboylam…" biçimi, ya da düz
-    // "enlem,boylam" metni) ağa hiç gitmeden anında ayrıştırır.
+    // "…/@enlem,boylam,…" ya da "…!3denlem!4dboylam…" biçimi, Google Maps
+    // query/ll/center parametreleri, ya da düz "enlem,boylam" metni) ağa
+    // hiç gitmeden anında ayrıştırır.
     function parseCoordFromText(text) {
       const s = String(text || "");
       const pinMatch = s.match(/!3d(-?\d{1,3}(?:\.\d+)?)!4d(-?\d{1,3}(?:\.\d+)?)/);
-      if (pinMatch) {
-        const lat = Number(pinMatch[1]);
-        const lng = Number(pinMatch[2]);
-        if (isPlausibleCoord(lat, lng)) return { lat, lng };
-      }
+      if (pinMatch) return exactCoordinate(pinMatch[1], pinMatch[2]);
       const atMatch = s.match(/@(-?\d{1,3}(?:\.\d+)?),(-?\d{1,3}(?:\.\d+)?)/);
-      if (atMatch) {
-        const lat = Number(atMatch[1]);
-        const lng = Number(atMatch[2]);
-        if (isPlausibleCoord(lat, lng)) return { lat, lng };
+      if (atMatch) return exactCoordinate(atMatch[1], atMatch[2]);
+      if (/^https?:\/\//i.test(s)) {
+        try {
+          const url = new URL(s);
+          for (const name of ["query", "q", "ll", "center", "sll", "daddr", "saddr", "destination", "origin"]) {
+            const coord = parseCoordPair(url.searchParams.get(name));
+            if (coord) return coord;
+          }
+        } catch (e) {}
       }
       const plainMatch = s.match(/(-?\d{1,3}(?:[.,]\d+)?)\s*[,;]\s*(-?\d{1,3}(?:[.,]\d+)?)/);
-      if (plainMatch) {
-        const lat = Number(plainMatch[1].replace(",", "."));
-        const lng = Number(plainMatch[2].replace(",", "."));
-        if (isPlausibleCoord(lat, lng)) return { lat, lng };
-      }
+      if (plainMatch) return exactCoordinate(plainMatch[1], plainMatch[2]);
       return null;
     }
 
     const GEOCODE_RETRY_MS = 24 * 60 * 60 * 1000;
-    function isUsableGeocodeEntry(entry) {
-      // Başarılı sonuç: {lat,lng} kalıcı olarak güvenilir kabul edilir.
-      // Başarısız deneme: 24 saat içinde tekrar denenmesin diye zaman
-      // damgasıyla saklanır, ama süre dolunca yeniden denenir (worker
-      // güncellenmiş veya geçici bir sorun düzelmiş olabilir).
-      if (!entry) return false;
-      if (Number.isFinite(entry.lat) && Number.isFinite(entry.lng)) return true;
-      return Boolean(entry.failedAt) && (Date.now() - entry.failedAt < GEOCODE_RETRY_MS);
+    function isRecentFailedGeocodeEntry(entry) {
+      return Boolean(
+        entry &&
+        entry.version === GEOCODE_FAILURE_VERSION &&
+        entry.failedAt &&
+        (Date.now() - entry.failedAt < GEOCODE_RETRY_MS)
+      );
     }
 
-    // Sayfadaki ham "Konum" metni genelde bina/kapı numarası ve posta kodu
-    // içeren tam bir açık adres ("Adres: Yenişehir, Millet Cd. No:38, 34912
-    // Pendik/İstanbul") — Nominatim bu kadar detaylı sokak adreslerini
-    // çoğu zaman bulamıyor. Bu yüzden giderek sadeleşen adaylar üretilir:
-    // önce tam metin, sonra bina no/posta kodu silinmiş hali, sonra
-    // "İlçe/İl" -> "İlçe, İl" düzeltmesi, en son sadece ilçe+il.
-    function geocodeCandidates(rawAddress) {
-      const text = rawAddress.trim().replace(/^[^:]{0,60}adres[^:]{0,40}:\s*/i, "");
-      const candidates = [text];
-
-      const noBuilding = text
-        .replace(/\bNo:?\s*\d+(?:\/\d+)?[a-zçğıöşü]?\b/gi, "")
-        .replace(/\b(?:İç Kapı|Ic Kapi|Kat)\s*(?:No:?)?\s*\d+[a-zçğıöşü]?\b/gi, "")
-        .replace(/\b\d{5}\b/g, "")
-        .replace(/\s{2,}/g, " ")
-        .replace(/,\s*,/g, ",")
-        .replace(/^,\s*|,\s*$/g, "")
-        .trim();
-      if (noBuilding && noBuilding !== text) candidates.push(noBuilding);
-
-      const slashFixed = noBuilding
-        .replace(/([A-Za-zÇĞİIıÖŞÜçğıöşü]+)\/([A-Za-zÇĞİIıÖŞÜçğıöşü]+)\s*$/, "$1, $2")
-        .trim();
-      if (slashFixed && slashFixed !== noBuilding) candidates.push(slashFixed);
-
-      const parts = slashFixed.split(",").map((part) => part.trim()).filter(Boolean);
-      if (parts.length > 2) candidates.push(parts.slice(-2).join(", "));
-      // En agresif son çare: sokak/cadde adı çoğu zaman Nominatim'de yok —
-      // sadece son parça (genelde "ilçe il ülke") çoğunlukla bulunabiliyor.
-      if (parts.length > 1) candidates.push(parts[parts.length - 1]);
-
-      // Virgülsüz veya az virgüllü adreslerde son çare: kelime bazlı sondan
-      // kısaltma (çoğu adres "... İlçe İl Türkiye" ile bitiyor).
-      const words = noBuilding.replace(/,/g, " ").split(/\s+/).filter(Boolean);
-      if (words.length > 3) candidates.push(words.slice(-3).join(" "));
-      if (words.length > 2) candidates.push(words.slice(-2).join(" "));
-
-      return [...new Set(candidates)].filter((candidate) => candidate.length >= 4);
-    }
-
-    async function geocodeAddress(address) {
-      const key = norm(address);
-      if (isUsableGeocodeEntry(geocodeCache[key])) return geocodeCache[key];
-      const candidates = geocodeCandidates(address);
-      let result = null;
-      for (let i = 0; i < candidates.length; i++) {
-        try {
-          const response = await fetchWithTimeout(
-            `https://sinif-atlasi.feyzakayaalti.workers.dev/?geocode=${encodeURIComponent(candidates[i])}`,
-            {}, 8000, { background: true }
-          );
-          const data = await response.json();
-          if (data && data.result && isPlausibleCoord(data.result.lat, data.result.lng)) {
-            result = data.result;
-            break;
-          }
-        } catch {}
-        if (i < candidates.length - 1) {
-          await new Promise((resolve) => window.setTimeout(resolve, 400));
-        }
-      }
-      geocodeCache[key] = result || { failedAt: Date.now() };
-      saveGeocodeCache();
-      return geocodeCache[key];
+    function isExactGeocodeEntry(entry) {
+      return Boolean(
+        entry &&
+        isPlausibleCoord(entry.lat, entry.lng) &&
+        (entry.exact === true || entry.source === "direct-coordinate" || entry.source === "google-link")
+      );
     }
 
     function isShortMapsLink(text) {
       return /^https?:\/\/(maps\.app\.goo\.gl|goo\.gl\/maps)\//i.test(String(text || "").trim());
     }
 
-    // Google'ın kısa paylaşım linkini (maps.app.goo.gl/... gibi) worker
-    // üzerinden çözer — worker yönlendirmeyi (redirect) takip edip son
+    const SEEDED_LOCATION_POINTS = SEEDED_LOCATION_POINT_LIST.reduce((acc, item) => {
+      const point = exactCoordinate(item.lat, item.lng, item.label || item.key, item.source || "seeded-current-sheet");
+      if (!point) return acc;
+      const keys = [item.key, ...(item.aliases || [])].filter(Boolean);
+      keys.forEach((key) => { acc[norm(key)] = point; });
+      return acc;
+    }, {});
+
+    function geocodeCacheKeysForEntry(entry) {
+      const keys = [String(entry || "").trim()];
+      const address = extractAddressFromEntry(entry);
+      if (address && norm(address) !== norm(entry)) keys.push(address);
+      return Array.from(new Set(keys.map((key) => String(key || "").trim()).filter(Boolean)));
+    }
+
+    function seededExactPointForEntry(entry) {
+      const keys = geocodeCacheKeysForEntry(entry);
+      for (const key of keys) {
+        const point = SEEDED_LOCATION_POINTS[norm(key)];
+        if (point && isPlausibleCoord(point.lat, point.lng)) {
+          return { ...point, exact: true, source: point.source || "seeded-current-sheet" };
+        }
+      }
+      return null;
+    }
+
+    function addressForGeocodeEntry(entry) {
+      if (isShortMapsLink(entry)) return "";
+      const address = extractAddressFromEntry(entry);
+      if (!address || address.length < 4) return "";
+      if (parseCoordFromText(address)) return "";
+      return address;
+    }
+
+    function isResolvableLocationEntry(entry) {
+      return Boolean(isShortMapsLink(entry) || addressForGeocodeEntry(entry));
+    }
+
+    function cachedExactPointForEntry(entry) {
+      const seeded = seededExactPointForEntry(entry);
+      if (seeded) return seeded;
+      const keys = geocodeCacheKeysForEntry(entry);
+      for (const key of keys) {
+        const cached = geocodeCache[norm(key)];
+        if (!cached || !isPlausibleCoord(cached.lat, cached.lng)) continue;
+        if (isExactGeocodeEntry(cached)) return cached;
+        // Önceki sürümlerde kısa Google Maps linkleri worker ile çözülüp
+        // kaynak etiketi olmadan saklanmış olabilir; bunlar da linkin kendi
+        // hedefinden gelen kesin koordinatlardır. Uzun adres arama linklerinin
+        // eski önbelleği ise kabul edilmez.
+        if (isShortMapsLink(entry)) return { ...cached, source: "google-link", exact: true };
+      }
+      return null;
+    }
+
+    function cacheExactPoint(key, point) {
+      if (!point || !isPlausibleCoord(point.lat, point.lng)) return null;
+      const exact = {
+        ...point,
+        label: humanLocationText(point.label || ""),
+        source: point.source || "google-link",
+        exact: true
+      };
+      if (!exact.label) delete exact.label;
+      const keys = Array.isArray(key) ? key : [key];
+      keys.map((item) => norm(item)).filter(Boolean).forEach((item) => {
+        geocodeCache[item] = exact;
+      });
+      saveGeocodeCache();
+      return exact;
+    }
+
+    // Google Maps paylaşım/link hedefini worker üzerinden çözer; worker
+    // yönlendirmeyi (redirect) takip edip son
     // URL'deki koordinatı çıkarır (bkz. cloudflare-worker.js: handleResolveLink).
     // Tarayıcı bunu CORS yüzünden doğrudan yapamaz.
     async function resolveShortMapsLink(link) {
@@ -4644,59 +4782,160 @@
         );
         const data = await response.json();
         if (data && data.result && isPlausibleCoord(data.result.lat, data.result.lng)) {
-          return data.result;
+          return {
+            ...data.result,
+            label: humanLocationText(data.result.label || link),
+            source: "google-link",
+            exact: true
+          };
         }
       } catch {}
       return null;
     }
 
-    // Tek bir "Konum" girdisini (link ya da düz metin) koordinata çevirir;
-    // sonuç girdinin kendi metnine göre önbelleğe alınır.
+    async function geocodeWithWorker(address) {
+      try {
+        const response = await fetchWithTimeout(
+          `https://sinif-atlasi.feyzakayaalti.workers.dev/?geocode=${encodeURIComponent(address)}`,
+          {}, 8000, { background: true }
+        );
+        const data = await response.json();
+        if (data && data.result && isPlausibleCoord(data.result.lat, data.result.lng)) {
+          return exactCoordinate(data.result.lat, data.result.lng, address, "listed-address");
+        }
+      } catch {}
+      return null;
+    }
+
+    async function geocodeWithArcgis(address) {
+      try {
+        const params = new URLSearchParams({
+          f: "json",
+          SingleLine: address,
+          countryCode: "TUR",
+          maxLocations: "3",
+          outFields: "Match_addr,Addr_type,Type,Score"
+        });
+        const response = await fetchWithTimeout(
+          `https://geocode.arcgis.com/arcgis/rest/services/World/GeocodeServer/findAddressCandidates?${params.toString()}`,
+          {}, 8000, { background: true }
+        );
+        const data = await response.json();
+        const candidates = Array.isArray(data?.candidates) ? data.candidates : [];
+        for (const candidate of candidates) {
+          const lat = Number(candidate?.location?.y);
+          const lng = Number(candidate?.location?.x);
+          const score = Number(candidate?.score || 0);
+          if (score < 70 || !isPlausibleCoord(lat, lng)) continue;
+          const point = exactCoordinate(lat, lng, candidate.address || address, "listed-address");
+          if (point) {
+            point.provider = "arcgis";
+            point.score = score;
+            return point;
+          }
+        }
+      } catch {}
+      return null;
+    }
+
+    async function geocodeListedAddress(entry) {
+      const address = addressForGeocodeEntry(entry);
+      if (!address) return null;
+      return (await geocodeWithWorker(address)) || (await geocodeWithArcgis(address));
+    }
+
+    function recentFailedEntryForKeys(keys) {
+      return keys.map((key) => geocodeCache[norm(key)]).find(isRecentFailedGeocodeEntry) || null;
+    }
+
+    function cacheFailedEntry(keys) {
+      const failed = { failedAt: Date.now(), source: "not-resolved", version: GEOCODE_FAILURE_VERSION };
+      keys.map((key) => norm(key)).filter(Boolean).forEach((key) => { geocodeCache[key] = failed; });
+      saveGeocodeCache();
+      return failed;
+    }
+
+    // Tek bir "Konum"/"Yer" girdisini tabloda yazan link/adres üzerinden
+    // koordinata çevirir. Doğrudan koordinat ve Google Maps linkleri önceliklidir;
+    // açık adresler yalnızca bu metinle çözümlenir ve sonuç cihazdan cihaza
+    // değişmesin diye önbelleğe alınır.
     async function resolveKonumEntry(entry) {
-      const key = norm(entry);
-      if (isUsableGeocodeEntry(geocodeCache[key])) return geocodeCache[key];
+      const keys = geocodeCacheKeysForEntry(entry);
       const direct = parseCoordFromText(entry);
-      if (direct) {
-        geocodeCache[key] = direct;
-        saveGeocodeCache();
-        return direct;
-      }
+      if (direct) return cacheExactPoint(keys, direct);
+      const cached = cachedExactPointForEntry(entry);
+      if (cached) return cacheExactPoint(keys, cached);
+      const recentFailure = recentFailedEntryForKeys(keys);
+      if (recentFailure) return recentFailure;
       let result = null;
       if (isShortMapsLink(entry)) {
         result = await resolveShortMapsLink(entry.trim());
       } else {
-        const address = extractAddressFromEntry(entry);
-        if (address.length >= 4) {
-          const geocoded = await geocodeAddress(address);
-          if (geocoded && Number.isFinite(geocoded.lat) && Number.isFinite(geocoded.lng)) result = geocoded;
-        }
+        result = await geocodeListedAddress(entry);
       }
-      geocodeCache[key] = result || { failedAt: Date.now() };
-      saveGeocodeCache();
-      return geocodeCache[key];
+      if (result) return cacheExactPoint(keys, result);
+      return cacheFailedEntry(keys);
     }
 
     let geocodeQueueRunning = false;
+    let geocodeQueueTimer = null;
+    function scheduleMissingGeocodeRefresh() {
+      if (!HAS_LEAFLET) return;
+      if (geocodeQueueTimer) window.clearTimeout(geocodeQueueTimer);
+      const delay = isMobileExperience() ? 300 : 200;
+      geocodeQueueTimer = window.setTimeout(() => {
+        geocodeQueueTimer = null;
+        geocodeMissingAddressesInBackground();
+      }, delay);
+    }
+
     async function geocodeMissingAddressesInBackground() {
-      if (isMobileExperience() && !HAS_LEAFLET) return;
+      if (!HAS_LEAFLET) return;
       if (geocodeQueueRunning) return;
       geocodeQueueRunning = true;
       try {
         const seen = new Set();
+        const pending = [];
         for (const row of cases) {
-          for (const entry of konumEntriesFor(row)) {
+          for (const entry of mapLocationEntriesFor(row)) {
             if (entry.length < 4) continue;
             const key = norm(entry);
-            if (seen.has(key) || isUsableGeocodeEntry(geocodeCache[key]) || parseCoordFromText(entry)) continue;
+            if (
+              seen.has(key) ||
+              parseCoordFromText(entry) ||
+              cachedExactPointForEntry(entry) ||
+              recentFailedEntryForKeys(geocodeCacheKeysForEntry(entry)) ||
+              !isResolvableLocationEntry(entry)
+            ) continue;
             seen.add(key);
-            const result = await resolveKonumEntry(entry);
-            if (result && isPlausibleCoord(result.lat, result.lng)) {
-              rebuildPoints();
-              render({ fitBounds: false });
-            }
-            await new Promise((resolve) => window.setTimeout(resolve, 1100));
+            pending.push(entry);
           }
         }
+        if (!pending.length) return;
+        const mobile = isMobileExperience();
+        const concurrency = Math.min(mobile ? 3 : 4, pending.length);
+        let cursor = 0;
+        let changed = 0;
+        const renderIfNeeded = (force = false) => {
+          if (!changed) return;
+          if (!force && changed % (mobile ? 4 : 6) !== 0) return;
+          rebuildPoints();
+          renderMarkers({ fitBounds: false });
+        };
+        const runWorker = async () => {
+          while (cursor < pending.length) {
+            const entry = pending[cursor];
+            cursor += 1;
+            const result = await resolveKonumEntry(entry);
+            if (isExactGeocodeEntry(result)) {
+              changed += 1;
+              renderIfNeeded(false);
+            }
+            await new Promise((resolve) => window.setTimeout(resolve, mobile ? 40 : 25));
+          }
+        };
+        await Promise.all(Array.from({ length: concurrency }, runWorker));
+        renderIfNeeded(true);
       } finally {
         geocodeQueueRunning = false;
       }
@@ -4717,43 +4956,32 @@
       if (latKey && lngKey) {
         const lat = Number(String(row[latKey]).replace(",", "."));
         const lng = Number(String(row[lngKey]).replace(",", "."));
-        if (isPlausibleCoord(lat, lng)) return [{ label: value(row, fields.location), lat, lng }];
+        const point = exactCoordinate(lat, lng, humanLocationText(value(row, fields.location)));
+        if (point) return [point];
       }
-      const entries = konumEntriesFor(row);
+      const entries = mapLocationEntriesFor(row);
       if (!entries.length) return null;
-      const locationText = value(row, fields.location);
+      const locationText = humanLocationText(value(row, fields.location));
       const resolved = [];
       entries.forEach((entry, index) => {
-        const cached = parseCoordFromText(entry) || geocodeCache[norm(entry)];
+        const cached = parseCoordFromText(entry) || cachedExactPointForEntry(entry);
         if (cached && isPlausibleCoord(cached.lat, cached.lng)) {
-          const label = cached.label || (entries.length > 1 ? `${locationText} (${index + 1})` : locationText);
-          resolved.push({ label, lat: cached.lat, lng: cached.lng });
+          const cachedLabel = humanLocationText(cached.label || "");
+          const label = cachedLabel || (entries.length > 1 ? `${locationText} (${index + 1})` : locationText);
+          resolved.push({
+            label,
+            lat: cached.lat,
+            lng: cached.lng,
+            source: cached.source || "direct-coordinate",
+            exact: cached.exact === true || Boolean(cached.source)
+          });
         }
       });
       return resolved.length ? resolved : null;
     }
 
-    function fuzzyLocationPoints(locationText) {
-      const targetTokens = new Set(norm(locationText).split(/[^a-z0-9]+/i).filter((token) => token.length > 2));
-      if (!targetTokens.size) return [];
-      let bestKey = null;
-      let bestScore = 0;
-      Object.keys(LOCATION_POINTS).forEach((key) => {
-        const keyTokens = new Set(norm(key).split(/[^a-z0-9]+/i).filter((token) => token.length > 2));
-        if (!keyTokens.size) return;
-        const overlap = Array.from(keyTokens).filter((token) => targetTokens.has(token)).length;
-        const score = overlap / keyTokens.size;
-        if (score > bestScore) {
-          bestScore = score;
-          bestKey = key;
-        }
-      });
-      return bestScore >= 0.5 ? LOCATION_POINTS[bestKey] : [];
-    }
-
     function pointsFor(row) {
-      const locationText = value(row, fields.location);
-      return explicitPoint(row) || LOCATION_POINTS[locationText] || fuzzyLocationPoints(locationText) || [];
+      return explicitPoint(row) || [];
     }
 
     function organizations(row) {
@@ -4808,6 +5036,7 @@
     }
 
     function popupFor(entry) {
+      const locationLabel = humanLocationText(entry.point.label || value(entry.row, fields.location));
       return `
         <article class="popup-mini">
           <h3>${esc(value(entry.row, fields.title))}</h3>
@@ -4815,7 +5044,7 @@
             <span class="tag">${esc(value(entry.row, fields.area))}</span>
             <span class="tag">${esc(value(entry.row, fields.status))}</span>
           </div>
-          <p>${esc(entry.point.label || value(entry.row, fields.location))}</p>
+          <p>${esc(locationLabel)}</p>
           <button type="button" data-open-case="${esc(entry.row.id)}">Detaylar</button>
         </article>
       `;
@@ -4826,14 +5055,18 @@
         icon: iconFor(entry.row),
         title: value(entry.row, fields.title)
       }).bindPopup(popupFor(entry), {
-        // Haritanın üstündeki "Görüneni Sığdır"/"Türkiye" düğmeleri (HUD)
+        // Haritanın üstündeki HUD düğmeleri Leaflet'ten bağımsız konumlanır.
         // sabit konumlu — Leaflet bunların yerini bilmediği için, üstteki
         // bir marker'ın popup'ı otomatik kaydırma (autoPan) sırasında
         // düğmelerin ARKASINDA kalabiliyordu. Bu boşluk, popup'ın her zaman
         // HUD'un altında/görünür kalmasını sağlar (özellikle mobilde, HUD
         // düğmeleri iki satıra sarabildiği için üst boşluk geniş tutuldu).
-        autoPanPaddingTopLeft: [12, 96],
-        autoPanPaddingBottomRight: [12, 12]
+        autoPan: true,
+        keepInView: true,
+        maxWidth: isMobileExperience() ? 292 : 340,
+        minWidth: isMobileExperience() ? 236 : 260,
+        autoPanPaddingTopLeft: isMobileExperience() ? [14, 112] : [16, 96],
+        autoPanPaddingBottomRight: isMobileExperience() ? [14, 116] : [16, 34]
       });
       marker.on("popupopen", () => {
         const button = document.querySelector(`[data-open-case="${entry.row.id}"]`);
@@ -4938,7 +5171,7 @@
         }
         markerRenderHandle = null;
         flushPendingMapReveal();
-        if (options.fitBounds !== false) fitBoundsForMarkers(markers, 0.12, 7);
+        if (options.fitBounds === true) fitBoundsForMarkers(markers, 0.12, 7);
       };
       drawChunk();
       return markers;
@@ -4962,7 +5195,6 @@
             ${favoriteIds.has(row.id) ? '<span class="tag">Favori</span>' : ""}
             ${row.isDiscovered ? '<span class="tag">Canlı keşif</span>' : ""}
             ${durationTag(row)}
-            <span class="tag">${row.pointCount ? `${row.pointCount} nokta` : "haritasız"}</span>
           </div>
         </button>
       `).join("");
@@ -5033,12 +5265,12 @@
     function render(options = {}) {
       if (!filtersReady) populateFilters();
       const rows = filteredCases();
+      if (rows.length && !rows.some((row) => row.id === selectedId)) selectedId = rows[0].id;
+      if (!rows.length) selectedId = null;
       renderMarkers({ fitBounds: options.fitBounds });
       renderList(rows);
       renderStats(rows);
-      if (!selectedId && rows.length) selectedId = rows[0].id;
       renderDetail();
-      if (!isMobileExperience()) scheduleMediaWarmup(rows);
     }
 
     function claim(label, body) {
@@ -5057,7 +5289,8 @@
     // şubesi/deposu olan bir direniş) — bu durumda her biri ayrı bir
     // "Haritada aç" satırı olarak gösterilir.
     function locationSection(row) {
-      const locationText = value(row, fields.location);
+      const rawLocationText = value(row, fields.location);
+      const locationText = humanLocationText(rawLocationText);
       if (!locationText) return "";
       const directUrls = konumRawUrlsFor(row);
       const points = pointsFor(row).filter((point) => Number.isFinite(point.lat) && Number.isFinite(point.lng));
@@ -5068,8 +5301,9 @@
         // yönlendirme doğrudan bu(nlar) olmalı, koordinattan yeniden
         // türetilmiş bir link değil.
         coordRows = directUrls.map((url, index) => {
-          const cached = geocodeCache[norm(url)];
-          const label = (cached && cached.label) || (directUrls.length > 1 ? `${locationText} (${index + 1})` : null);
+          const cached = cachedExactPointForEntry(url);
+          const cachedLabel = humanLocationText((cached && cached.label) || "");
+          const label = cachedLabel || (directUrls.length > 1 ? `${locationText} (${index + 1})` : null);
           return `
             <div class="coord-row">
               ${showLabels && label ? `<span class="coord-label">${esc(label)}</span>` : ""}
@@ -5080,9 +5314,10 @@
       } else if (points.length) {
         coordRows = points.map((point) => {
           const mapsUrl = `https://www.google.com/maps?q=${point.lat},${point.lng}`;
+          const pointLabel = humanLocationText(point.label || locationText);
           return `
             <div class="coord-row">
-              ${showLabels ? `<span class="coord-label">${esc(point.label || locationText)}</span>` : ""}
+              ${showLabels ? `<span class="coord-label">${esc(pointLabel)}</span>` : ""}
               <a class="inline-action" href="${esc(mapsUrl)}" target="_blank" rel="noopener">Haritada aç</a>
             </div>
           `;
@@ -5120,6 +5355,17 @@
       if (!open) stopMediaRefresh();
     }
 
+    function closeDetailFromMapBackground(event) {
+      if (!els.detailPanel.classList.contains("open")) return;
+      const target = event && event.originalEvent && event.originalEvent.target;
+      if (
+        target &&
+        target.closest &&
+        target.closest(".leaflet-marker-icon, .leaflet-popup, .leaflet-control")
+      ) return;
+      setPanelOpen(false);
+    }
+
     function syncTabs() {
       document.querySelectorAll(".tab").forEach((tab) => {
         tab.classList.toggle("active", tab.dataset.tab === activeTab);
@@ -5133,7 +5379,6 @@
       setPanelOpen(true);
       renderList(filteredCases());
       renderDetail();
-      scheduleMediaWarmup([selectedCase(), ...filteredCases()], { delay: 0, limit: isMobileExperience() ? 1 : undefined });
       if (options.focusMap === false) return;
       if (!revealCaseOnMap(id)) pendingMapRevealId = id;
     }
@@ -5151,7 +5396,6 @@
         ${favoriteIds.has(row.id) ? '<span class="tag">Favori</span>' : ""}
         ${row.isDiscovered ? '<span class="tag">Canlı keşif</span>' : ""}
         ${durationTag(row)}
-        <span class="tag">${row.pointCount ? `${row.pointCount} harita noktası` : "haritasız kayıt"}</span>
       `;
       els.favoriteCase.textContent = favoriteIds.has(row.id) ? "Favoriden Çıkar" : "Favoriye Al";
       els.favoriteCase.classList.toggle("is-active", favoriteIds.has(row.id));
@@ -5161,7 +5405,6 @@
         hydratePressLinkImages(row);
       } else {
         stopPressAutoplay();
-        if (activeTab === "summary" && els.detailPanel.classList.contains("open")) hydrateSummaryNews(row);
       }
     }
 
@@ -5493,20 +5736,7 @@
             ${durationSnapshot(row)}
           </div>
           ${locationSection(row)}
-          ${claim("Sendika/Dernek/Kurum", value(row, fields.actors))}
-          ${claim("İşkolu", value(row, fields.sector))}
           ${claim("Neden/Talepler", value(row, fields.reason))}
-          ${claim("Başlangıç tarihi", value(row, fields.startDate))}
-          ${durationClaim(row)}
-          ${claim("Eylem biçimi", value(row, fields.method))}
-          ${claim("Bilgiler", value(row, fields.latest))}
-          <section class="summary-news-card" aria-label="Bu direnişe ait son haberler">
-            <div class="summary-news-head">
-              <h3>Son 3 alakalı haber</h3>
-              <span id="summaryNewsMeta">Kart açıldığında güncellenir</span>
-            </div>
-            <div id="summaryNews" class="live-results"><div class="loading">Haber özeti hazırlanıyor...</div></div>
-          </section>
         </div>
       `;
     }
@@ -5525,35 +5755,116 @@
       return null;
     }
 
-    function pressLinksFor(row) {
-      const raw = value(row, fields.pressLinks);
-      if (!raw) return [];
-      const urls = raw.match(/https?:\/\/\S+/g) || [];
-      return urls.map((url) => {
-        const clean = url.replace(/[),.;]+$/, "");
-        const youtubeId = extractYoutubeId(clean);
-        if (youtubeId) {
-          return { url: clean, youtubeId, label: "YouTube videosu", image: `https://img.youtube.com/vi/${youtubeId}/hqdefault.jpg` };
-        }
-        const searchMatch = clean.match(/[?&]s=([^&]+)/);
-        if (searchMatch) {
-          return { url: clean, isSearch: true, label: `Umut-Sen'de ara: ${decodeURIComponent(searchMatch[1])}` };
-        }
-        const slug = clean.replace(/\/+$/, "").split("/").pop() || clean;
-        const label = slug
+    function cleanPressUrl(url) {
+      return String(url || "")
+        .replace(/&amp;/g, "&")
+        .trim()
+        .replace(/[)\].,;!?'’"”>]+$/g, "");
+    }
+
+    function pressHost(url) {
+      try {
+        return new URL(url).hostname.replace(/^www\./, "").replace(/^m\./, "").toLocaleLowerCase("tr-TR");
+      } catch {
+        return "";
+      }
+    }
+
+    function pressSourceName(url, youtubeId = "") {
+      const host = pressHost(url);
+      if (youtubeId || /(^|\.)youtu\.be$|(^|\.)youtube\.com$/i.test(host)) return "YouTube";
+      if (host.includes("instagram.com")) return "Instagram";
+      if (host.includes("facebook.com") || host === "fb.watch") return "Facebook";
+      if (host.includes("umutsen.org")) return "Umut-Sen";
+      if (/(^|\.)e-?komite\.|ekomite|e-komite|komitedergi|(^|\.)komite\./i.test(host)) return "E-Komite";
+      if (host.includes("twitter.com") || host.includes("x.com")) return "X";
+      return host || "Web";
+    }
+
+    function pressLinkKind(url, youtubeId = "") {
+      const source = pressSourceName(url, youtubeId);
+      if (source === "YouTube") return "video";
+      if (["Instagram", "Facebook", "X"].includes(source)) return "social";
+      return "article";
+    }
+
+    function titleFromPressUrl(url, sourceName = "") {
+      try {
+        const parsed = new URL(url);
+        const search = parsed.searchParams.get("s") || parsed.searchParams.get("q");
+        if (search) return `${sourceName || "Sitede"} ara: ${decodeURIComponent(search).replace(/\+/g, " ")}`;
+        const parts = parsed.pathname.split("/").map((part) => part.trim()).filter(Boolean);
+        const slug = parts.reverse().find((part) => !/^\d{4}$/.test(part) && !/^\d{1,2}$/.test(part)) || parsed.hostname;
+        return decodeURIComponent(slug)
+          .replace(/\+/g, " ")
           .replace(/[-_]+/g, " ")
           .trim()
           .replace(/\b\w/g, (letter) => letter.toLocaleUpperCase("tr-TR"));
-        return { url: clean, label: label || clean };
-      });
+      } catch {
+        return sourceName || url;
+      }
+    }
+
+    function pressFallbackImage(row, link, index = 0) {
+      const [accent, soft] = posterAccentFor(row);
+      const source = svgEscape(shortText(link.sourceName || "Medya", 28));
+      const title = svgEscape(shortText(link.label || value(row, fields.title), 76));
+      const kind = link.kind === "video" ? "Video" : link.kind === "social" ? "Sosyal paylaşım" : "Yazı / Haber";
+      const mark = svgEscape(kind);
+      const svg = `
+        <svg xmlns="http://www.w3.org/2000/svg" width="960" height="540" viewBox="0 0 960 540">
+          <rect width="960" height="540" fill="${soft}"/>
+          <rect width="960" height="540" fill="#ffffff" opacity="0.55"/>
+          <circle cx="${780 - (index % 3) * 80}" cy="86" r="180" fill="${accent}" opacity="0.14"/>
+          <circle cx="118" cy="484" r="210" fill="${accent}" opacity="0.10"/>
+          <rect x="56" y="56" width="848" height="428" rx="26" fill="#ffffff" opacity="0.88"/>
+          <rect x="56" y="56" width="14" height="428" fill="${accent}"/>
+          <text x="98" y="126" fill="${accent}" font-family="Inter, Arial, sans-serif" font-size="25" font-weight="900">${source}</text>
+          <text x="98" y="214" fill="#111827" font-family="Inter, Arial, sans-serif" font-size="42" font-weight="850">${title}</text>
+          <text x="98" y="420" fill="#64748b" font-family="Inter, Arial, sans-serif" font-size="24" font-weight="800">${mark}</text>
+          <text x="692" y="420" fill="${accent}" font-family="Inter, Arial, sans-serif" font-size="23" font-weight="900">Direniş Haritası</text>
+        </svg>
+      `.replace(/\s+/g, " ").trim();
+      return `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`;
+    }
+
+    function pressLinksFor(row) {
+      const raw = [value(row, fields.pressLinks), value(row, fields.media)].filter(Boolean).join("\n");
+      if (!raw) return [];
+      const urls = raw.match(/https?:\/\/\S+/g) || [];
+      const seen = new Set();
+      return urls.map((url, index) => {
+        const clean = cleanPressUrl(url);
+        const key = normalizeMediaUrl(clean);
+        if (!clean || seen.has(key)) return null;
+        seen.add(key);
+        const youtubeId = extractYoutubeId(clean);
+        const sourceName = pressSourceName(clean, youtubeId);
+        const kind = pressLinkKind(clean, youtubeId);
+        if (youtubeId) {
+          const link = { url: clean, youtubeId, sourceName, kind, label: "YouTube videosu", image: `https://img.youtube.com/vi/${youtubeId}/hqdefault.jpg` };
+          link.fallbackImage = pressFallbackImage(row, link, index);
+          return link;
+        }
+        const searchMatch = clean.match(/[?&]s=([^&]+)/);
+        const label = searchMatch
+          ? `${sourceName}'de ara: ${decodeURIComponent(searchMatch[1]).replace(/\+/g, " ")}`
+          : (kind === "social" ? `${sourceName} paylaşımı` : titleFromPressUrl(clean, sourceName));
+        const link = { url: clean, isSearch: Boolean(searchMatch), sourceName, kind, label };
+        link.fallbackImage = pressFallbackImage(row, link, index);
+        return link;
+      }).filter(Boolean);
     }
 
     function pressLinksSection(row) {
       const links = pressLinksFor(row);
       if (!links.length) return "";
       const items = links.map((link, index) => `
-        <a class="press-link-card" href="${esc(link.url)}" target="_blank" rel="noopener" data-press-index="${index}">
-          <span class="press-link-thumb" data-press-thumb></span>
+        <a class="press-link-card" href="${esc(link.url)}" target="_blank" rel="noopener" data-press-index="${index}" data-press-kind="${esc(link.kind || "article")}" aria-label="${esc(`${link.sourceName || "Medya"}: ${link.label}`)}">
+          <span class="press-link-thumb has-image" data-press-thumb>
+            <img src="${esc(link.image || link.fallbackImage)}" alt="${esc(link.label)}" loading="lazy" decoding="async">
+          </span>
+          <span class="press-link-source">${esc(link.sourceName || "Medya")}</span>
           <span class="press-link-overlay">
             <span class="press-link-label">${esc(link.label)}</span>
           </span>
@@ -5579,6 +5890,66 @@
         const match = html.match(pattern);
         if (match && match[1]) return match[1].replace(/&amp;/g, "&");
       }
+      const markdownImage = html.match(/!\[[^\]]*]\((https?:\/\/[^)\s]+)\)/i);
+      if (markdownImage && markdownImage[1]) return markdownImage[1].replace(/&amp;/g, "&");
+      return "";
+    }
+
+    function decodeHtmlEntities(text) {
+      const area = document.createElement("textarea");
+      area.innerHTML = String(text || "");
+      return area.value;
+    }
+
+    function cleanPreviewImageUrl(url) {
+      let value = decodeHtmlEntities(String(url || "").trim())
+        .replace(/\\\//g, "/")
+        .replace(/\\u0026/g, "&")
+        .replace(/&amp;/g, "&");
+      if ((value.startsWith('"') && value.endsWith('"')) || (value.startsWith("'") && value.endsWith("'"))) {
+        value = value.slice(1, -1);
+      }
+      return value;
+    }
+
+    function previewImageCandidates(html) {
+      const source = String(html || "");
+      const candidates = [];
+      const add = (url) => {
+        const clean = cleanPreviewImageUrl(url);
+        if (clean) candidates.push(clean);
+      };
+      [
+        /<meta[^>]+property=["']og:image(?::secure_url)?["'][^>]+content=["']([^"']+)["']/gi,
+        /<meta[^>]+content=["']([^"']+)["'][^>]+property=["']og:image(?::secure_url)?["']/gi,
+        /<meta[^>]+name=["']twitter:image(?::src)?["'][^>]+content=["']([^"']+)["']/gi,
+        /<meta[^>]+content=["']([^"']+)["'][^>]+name=["']twitter:image(?::src)?["']/gi,
+        /!\[[^\]]*]\((https?:\/\/[^)\s]+)\)/gi,
+        /["'](?:display_url|thumbnail_src|thumbnail_url|full_image_uri|image_url)["']\s*:\s*["']([^"']+)["']/gi,
+        /["']image["']\s*:\s*\{[^{}]{0,500}?["']uri["']\s*:\s*["']([^"']+)["']/gi
+      ].forEach((pattern) => {
+        let match;
+        while ((match = pattern.exec(source))) add(match[1]);
+      });
+      return Array.from(new Set(candidates));
+    }
+
+    function isUsableSocialPreviewImage(url) {
+      if (!/^https?:\/\//i.test(url)) return false;
+      const text = norm(url);
+      if (text.startsWith("blob:") || text.startsWith("data:")) return false;
+      if (text.includes("static.xx.fbcdn.net") || text.includes("static.cdninstagram.com")) return false;
+      if (text.includes("/rsrc.php") || text.includes("favicon") || text.includes("sprite")) return false;
+      if (text.includes("blank") || text.includes("placeholder") || text.includes("profile_pic")) return false;
+      return /(scontent|fbcdn|cdninstagram|instagram|fna\.fbcdn|external\..*fbcdn)/i.test(url) ||
+        /\.(jpe?g|png|webp)(\?|#|$)/i.test(url);
+    }
+
+    function extractSocialPreviewImage(html, baseUrl) {
+      for (const candidate of previewImageCandidates(html)) {
+        const image = absolutePreviewUrl(candidate, baseUrl);
+        if (isUsableSocialPreviewImage(image)) return image;
+      }
       return "";
     }
 
@@ -5587,9 +5958,24 @@
       const ogMatch = html.match(/<meta[^>]+property=["']og:title["'][^>]+content=["']([^"']+)["']/i)
         || html.match(/<meta[^>]+content=["']([^"']+)["'][^>]+property=["']og:title["']/i);
       const titleMatch = !ogMatch && html.match(/<title[^>]*>([^<]+)<\/title>/i);
-      const raw = ogMatch?.[1] || titleMatch?.[1] || "";
+      const markdownTitle = !ogMatch && !titleMatch && (
+        html.match(/^\s*Title:\s*(.+)$/mi) ||
+        html.match(/^\s*#\s+(.+)$/m)
+      );
+      const raw = ogMatch?.[1] || titleMatch?.[1] || markdownTitle?.[1] || "";
       if (!raw) return "";
-      return stripHtml(raw).replace(/\s*[-|–]\s*Umut-Sen.*$/i, "").trim();
+      return stripHtml(raw)
+        .replace(/\s*[-|–]\s*(Umut-Sen|E-?Komite|Komite).*$/i, "")
+        .trim();
+    }
+
+    function absolutePreviewUrl(url, baseUrl) {
+      if (!url) return "";
+      try {
+        return new URL(url.replace(/&amp;/g, "&"), baseUrl).href;
+      } catch {
+        return url;
+      }
     }
 
     async function fetchYoutubeOEmbed(url) {
@@ -5605,11 +5991,18 @@
       }
     }
 
-    function setThumbImage(thumb, src, alt) {
+    function setThumbImage(thumb, src, alt, fallback = "") {
+      if (!thumb || !src) return;
       const img = document.createElement("img");
       img.src = src;
       img.alt = alt;
       img.loading = "lazy";
+      img.decoding = "async";
+      if (fallback && fallback !== src) {
+        img.addEventListener("error", () => {
+          img.src = fallback;
+        }, { once: true });
+      }
       thumb.innerHTML = "";
       thumb.appendChild(img);
       thumb.classList.add("has-image");
@@ -5618,6 +6011,214 @@
     function setCardLabel(card, text) {
       const label = card?.querySelector(".press-link-label");
       if (label && text) label.textContent = text;
+    }
+
+    function cleanSocialPreviewTitle(title, fallback = "") {
+      const text = stripHtml(title || "").replace(/\s+/g, " ").trim();
+      if (!text || /^(error|log in|login|facebook|instagram)$/i.test(text)) return fallback;
+      return shortText(text.replace(/\s*\|\s*(Umut-Sen|Facebook|Instagram).*$/i, ""), 128);
+    }
+
+    function socialPreviewCacheKey(url) {
+      return `press-social-preview:${url}`;
+    }
+
+    function readSocialPreviewCache(url) {
+      try {
+        const cached = JSON.parse(localStorage.getItem(socialPreviewCacheKey(url)) || "null");
+        if (!cached?.preview?.image) return null;
+        if (Date.now() - (cached.updatedAt || 0) > 6 * 60 * 60 * 1000) return null;
+        return cached.preview;
+      } catch {
+        return null;
+      }
+    }
+
+    function writeSocialPreviewCache(url, preview) {
+      try {
+        if (!preview?.image) return;
+        localStorage.setItem(socialPreviewCacheKey(url), JSON.stringify({
+          updatedAt: Date.now(),
+          preview
+        }));
+      } catch {}
+    }
+
+    function extractFacebookNextUrls(html, sourceUrl = "") {
+      const urls = [];
+      const add = (url) => {
+        try {
+          const parsed = new URL(cleanPreviewImageUrl(url), sourceUrl || location.href);
+          const host = parsed.hostname.replace(/^www\./, "").replace(/^m\./, "");
+          if (host !== "facebook.com") return;
+          if (/\/(?:login|recover|help|policies|careers|developers)\b/i.test(parsed.pathname)) return;
+          parsed.hash = "";
+          urls.push(parsed.href);
+        } catch {}
+      };
+      const source = String(html || "");
+      let match;
+      const nextPattern = /[?&]next=([^&\s)\]]+)/gi;
+      while ((match = nextPattern.exec(source))) {
+        try {
+          add(decodeURIComponent(match[1]));
+        } catch {}
+      }
+      const facebookPattern = /https?:\/\/(?:www\.|m\.)?facebook\.com\/[^\s)"'<>]+/gi;
+      while ((match = facebookPattern.exec(source))) add(match[0]);
+      return Array.from(new Set(urls)).slice(0, 4);
+    }
+
+    async function readSocialPreviewSource(requestUrl, sourceUrl, timeout = 12000) {
+      try {
+        const response = await fetchWithTimeout(requestUrl, {}, timeout, { background: false });
+        if (!response.ok && !requestUrl.includes("r.jina.ai")) return null;
+        const text = await response.text();
+        if (!text || text.length < 100) return null;
+        const title = cleanSocialPreviewTitle(extractOgTitle(text));
+        return {
+          image: extractSocialPreviewImage(text, sourceUrl),
+          title,
+          nextUrls: extractFacebookNextUrls(text, sourceUrl)
+        };
+      } catch {
+        return null;
+      }
+    }
+
+    async function fetchMicrolinkPreview(link) {
+      try {
+        const url = `https://api.microlink.io/?url=${encodeURIComponent(link.url)}`;
+        const response = await fetchWithTimeout(url, {}, 12000, { background: false });
+        if (!response.ok) return null;
+        const data = await response.json();
+        const image = cleanPreviewImageUrl(data?.data?.image?.url || "");
+        if (!isUsableSocialPreviewImage(image)) return null;
+        return {
+          image,
+          title: cleanSocialPreviewTitle(data?.data?.title || "")
+        };
+      } catch {
+        return null;
+      }
+    }
+
+    function socialPreviewSourceUrls(url) {
+      const urls = [url];
+      try {
+        const parsed = new URL(url);
+        const host = parsed.hostname.replace(/^www\./, "").replace(/^m\./, "");
+        if (host === "facebook.com" && /^\/share\//i.test(parsed.pathname)) {
+          const mobile = new URL(parsed.href);
+          mobile.hostname = "m.facebook.com";
+          urls.push(mobile.href);
+        }
+      } catch {}
+      return Array.from(new Set(urls));
+    }
+
+    async function fetchSocialPreviewFresh(link) {
+      const cached = readSocialPreviewCache(link.url);
+      if (cached) return cached;
+      let fallbackTitle = "";
+      const collect = async (tasks) => {
+        const pending = new Map(tasks.map((task, index) => {
+          const wrapped = task
+            .then((value) => ({ index, value }))
+            .catch(() => ({ index, value: null }));
+          return [index, wrapped];
+        }));
+        const nextUrls = [];
+        while (pending.size) {
+          const settled = await Promise.race(pending.values());
+          pending.delete(settled.index);
+          const value = settled.value;
+          if (!value) continue;
+          if (!fallbackTitle && value.title) fallbackTitle = value.title;
+          if (value.image) {
+            return { preview: { image: value.image, title: value.title || fallbackTitle }, nextUrls };
+          }
+          nextUrls.push(...(value.nextUrls || []));
+        }
+        return { preview: null, nextUrls };
+      };
+
+      const primary = await collect([
+        ...socialPreviewSourceUrls(link.url).map((url) => readSocialPreviewSource(jinaReaderUrl(url), url, 24000)),
+        fetchMicrolinkPreview(link)
+      ]);
+      if (primary.preview) {
+        writeSocialPreviewCache(link.url, primary.preview);
+        return primary.preview;
+      }
+      const followUps = Array.from(new Set(primary.nextUrls || [])).slice(0, 4);
+      for (const url of followUps) {
+        const preview = await readSocialPreviewSource(jinaReaderUrl(url), url, 12000);
+        if (!fallbackTitle && preview?.title) fallbackTitle = preview.title;
+        if (preview?.image) {
+          const result = { image: preview.image, title: preview.title || fallbackTitle };
+          writeSocialPreviewCache(link.url, result);
+          return result;
+        }
+      }
+      const ownProxy = await readSocialPreviewSource(ownProxyUrl(link.url), link.url, 4500);
+      if (!fallbackTitle && ownProxy?.title) fallbackTitle = ownProxy.title;
+      if (ownProxy?.image) {
+        const result = { image: ownProxy.image, title: ownProxy.title || fallbackTitle };
+        writeSocialPreviewCache(link.url, result);
+        return result;
+      }
+      return fallbackTitle ? { image: "", title: fallbackTitle } : null;
+    }
+
+    async function fetchSocialPreview(link) {
+      const cached = readSocialPreviewCache(link.url);
+      if (cached) return cached;
+      const pending = socialPreviewPromises.get(link.url);
+      if (pending) return pending;
+      const request = fetchSocialPreviewFresh(link);
+      socialPreviewPromises.set(link.url, request);
+      try {
+        return await request;
+      } finally {
+        socialPreviewPromises.delete(link.url);
+      }
+    }
+
+    function socialPreviewLinksForRows(rows = cases) {
+      const seen = new Set();
+      return (rows || []).flatMap((row) => pressLinksFor(row).filter((link) => link.kind === "social"))
+        .filter((link) => {
+          if (!link.url || seen.has(link.url) || readSocialPreviewCache(link.url)) return false;
+          seen.add(link.url);
+          return true;
+        });
+    }
+
+    function scheduleSocialPreviewWarmup(rows = cases, options = {}) {
+      if (navigator.onLine === false) return;
+      const links = socialPreviewLinksForRows(rows).slice(0, options.limit ?? (isMobileExperience() ? 8 : 16));
+      if (!links.length) return;
+      socialPreviewWarmQueue = links;
+      if (socialPreviewWarmTimer) window.clearTimeout(socialPreviewWarmTimer);
+      socialPreviewWarmTimer = window.setTimeout(warmSocialPreviewQueue, options.delay ?? 1200);
+    }
+
+    async function warmSocialPreviewQueue() {
+      if (socialPreviewWarmBusy || navigator.onLine === false) return;
+      socialPreviewWarmBusy = true;
+      try {
+        while (socialPreviewWarmQueue.length) {
+          const link = socialPreviewWarmQueue.shift();
+          if (!link || readSocialPreviewCache(link.url)) continue;
+          try {
+            await fetchSocialPreview(link);
+          } catch {}
+          await new Promise((resolve) => window.setTimeout(resolve, 180));
+        }
+      } finally {
+        socialPreviewWarmBusy = false;
+      }
     }
 
     function stopPressAutoplay() {
@@ -5654,20 +6255,27 @@
         const thumb = card?.querySelector("[data-press-thumb]");
         if (!thumb) return;
         if (link.youtubeId) {
-          setThumbImage(thumb, link.image, link.label);
+          setThumbImage(thumb, link.image, link.label, link.fallbackImage);
           const meta = await fetchYoutubeOEmbed(link.url);
           if (token !== pressImageRequestToken || !meta) return;
           if (meta.title) setCardLabel(card, meta.title);
-          if (meta.thumbnail_url) setThumbImage(thumb, meta.thumbnail_url, meta.title || link.label);
+          if (meta.thumbnail_url) setThumbImage(thumb, meta.thumbnail_url, meta.title || link.label, link.fallbackImage);
+          return;
+        }
+        if (link.kind === "social") {
+          const preview = await fetchSocialPreview(link);
+          if (token !== pressImageRequestToken || !preview) return;
+          if (preview.image) setThumbImage(thumb, preview.image, preview.title || link.label, link.fallbackImage);
+          if (preview.title) setCardLabel(card, preview.title);
           return;
         }
         if (link.isSearch) return;
         try {
           const html = await fetchArticlePage(link.url, { background: false });
           if (token !== pressImageRequestToken) return;
-          const image = extractOgImage(html);
+          const image = absolutePreviewUrl(extractOgImage(html), link.url);
           const title = extractOgTitle(html);
-          if (image) setThumbImage(thumb, image, title || link.label);
+          if (image) setThumbImage(thumb, image, title || link.label, link.fallbackImage);
           if (title) setCardLabel(card, title);
         } catch {}
       }));
@@ -7176,10 +7784,6 @@
     function startMediaAutoRefresh() {
       if (mediaAutoRefreshTimer) window.clearInterval(mediaAutoRefreshTimer);
       mediaAutoRefreshTimer = null;
-      if (isMobileExperience()) return;
-      mediaAutoRefreshTimer = window.setInterval(() => {
-        scheduleMediaWarmup(filteredCases(), { delay: 80, limit: MEDIA_PREFETCH_LIMIT });
-      }, MEDIA_REFRESH_MS);
     }
 
     function renderLiveBundle(row, bundle) {
@@ -7378,8 +7982,7 @@
     async function copySelectedCaseLink() {
       const row = selectedCase();
       if (!row) return;
-      const url = `${location.origin}${location.pathname}#${encodeURIComponent(row.id)}`;
-      history.replaceState(null, "", `#${encodeURIComponent(row.id)}`);
+      const url = location.origin;
       try {
         await navigator.clipboard.writeText(url);
         els.copyCaseLink.textContent = "Kopyalandı";
@@ -7411,7 +8014,7 @@
         selectedId = cases[0]?.id || null;
       }
       render({ fitBounds: options.fitBounds });
-      geocodeMissingAddressesInBackground();
+      scheduleMissingGeocodeRefresh();
     }
 
     function renderOverview(row) {
@@ -7504,19 +8107,70 @@
     }
 
     function fitFiltered() {
-      if (!HAS_LEAFLET) {
-        requestMapLoad();
-        return;
-      }
+      if (!HAS_LEAFLET) return;
       const markers = [];
       markerByCase.forEach((items) => markers.push(...items));
       if (!markers.length) return;
       fitBoundsForMarkers(markers, 0.16, 8);
     }
 
+    function requestFitFiltered() {
+      if (HAS_LEAFLET) {
+        fitFiltered();
+        return;
+      }
+      if (window.__leafletReady && typeof window.__leafletReady.then === "function") {
+        window.__leafletReady.then((ok) => {
+          if (ok) window.setTimeout(fitFiltered, 0);
+        });
+      }
+    }
+
+    function rowsFingerprint(rows) {
+      try {
+        return JSON.stringify(rows || []);
+      } catch {
+        return String((rows || []).length);
+      }
+    }
+
     function useRows(rawRows, sourceLabel, options = {}) {
+      if (sourceLabel === "Çevrimiçi") persistRowsCache(rawRows);
+      const nextFingerprint = rowsFingerprint(rawRows);
+      if (activeRowsFingerprint === nextFingerprint && cases.length) return;
+      activeRowsFingerprint = nextFingerprint;
       baseRows = rawRows;
-      mergeRows(false, options);
+      mergeRows(true, options);
+      scheduleSocialPreviewWarmup(cases, { delay: sourceLabel === "Çevrimiçi" ? 800 : 1600 });
+    }
+
+    function readRowsCache() {
+      try {
+        const cached = JSON.parse(localStorage.getItem(DATA_CACHE_KEY) || "null");
+        if (!cached || !Array.isArray(cached.rows) || !cached.rows.length) return null;
+        if (cached.seedFingerprint !== rowsFingerprint(FALLBACK_ROWS)) return null;
+        if (Date.now() - (cached.updatedAt || 0) > DATA_CACHE_MAX_AGE_MS) return null;
+        return cached.rows;
+      } catch {
+        return null;
+      }
+    }
+
+    function persistRowsCache(rows) {
+      try {
+        if (!Array.isArray(rows) || !rows.length) return;
+        localStorage.setItem(DATA_CACHE_KEY, JSON.stringify({
+          updatedAt: Date.now(),
+          seedFingerprint: rowsFingerprint(FALLBACK_ROWS),
+          rows
+        }));
+      } catch {
+        // Depolama kapalı/doluysa gömülü güncel veriyle devam edilir.
+      }
+    }
+
+    function initialRows() {
+      return readRowsCache() || FALLBACK_ROWS;
     }
 
     function parseGvizResponse(response) {
@@ -7592,13 +8246,11 @@
       if (row && activeTab === "media") {
         hydratePressLinkImages(row);
       }
-      scheduleMediaWarmup(filteredCases(), { delay: 120, force: true });
     }
 
     function configureRefresh() {
       if (refreshTimer) window.clearInterval(refreshTimer);
-      const ms = Number(preferences.refreshMs || 0);
-      if (ms > 0) refreshTimer = window.setInterval(refreshOnlineSources, ms);
+      refreshTimer = window.setInterval(refreshOnlineSources, DATA_REFRESH_MS);
     }
 
     els.search.addEventListener("input", () => {
@@ -7607,15 +8259,6 @@
       render();
     });
     [els.areaFilter, els.statusFilter].forEach((el) => el.addEventListener("change", render));
-    els.fitFiltered.addEventListener("click", fitFiltered);
-    els.focusTurkey.addEventListener("click", () => {
-      if (!HAS_LEAFLET) {
-        refreshOnlineSources();
-        return;
-      }
-      map.fitBounds([[35.7, 25.4], [42.2, 45.0]], { animate: !isMobileExperience() });
-    });
-    if (els.reloadPage) els.reloadPage.addEventListener("click", () => window.location.reload());
     els.closePanel.addEventListener("click", () => setPanelOpen(false));
     els.smartFilters.forEach((button) => {
       button.addEventListener("click", () => setSmartFilter(
@@ -7627,6 +8270,7 @@
         activeSmartFilter === button.dataset.statFilter ? "all" : button.dataset.statFilter
       ));
     });
+    if (els.fitFiltered) els.fitFiltered.addEventListener("click", requestFitFiltered);
     els.favoriteCase.addEventListener("click", toggleSelectedFavorite);
     els.downloadCase.addEventListener("click", downloadSelectedCase);
     els.copyCaseLink.addEventListener("click", copySelectedCaseLink);
@@ -7659,14 +8303,8 @@
     startMediaAutoRefresh();
     scheduleDurationRefresh();
     updateOnlineState();
-    // Önce eski/yerel yedek veriyi gösterip sonra canlı veriyle değiştirmek
-    // "eski kayıtlar görünüp sonra yenileniyor" hissi veriyordu. Bunun yerine
-    // canlı tablo yanıtı gelene kadar kısa bir yükleniyor durumu gösterilir;
-    // ekrana yalnızca güncel veri (ya da tablo hiç ulaşılamazsa yedek veri) BİR KEZ çizilir.
-    els.caseList.innerHTML = '<div class="empty"><b>Yükleniyor…</b><span>Güncel direniş kayıtları getiriliyor.</span></div>';
-    loadGoogleSheet()
-      .then((rows) => useRows(rows, "Çevrimiçi"))
-      .catch(() => useRows(FALLBACK_ROWS, "Yerel"));
+    useRows(initialRows(), "Gömülü");
+    window.setTimeout(refreshOnlineSources, 0);
   </script>
 </body>
 </html>
