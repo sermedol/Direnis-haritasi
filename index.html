@@ -2246,15 +2246,19 @@
     }
 
     .quote {
-      width: fit-content;
+      max-width: 100%;
+      box-sizing: border-box;
       margin-top: 8px;
       padding: 4px 9px;
       color: var(--accent);
       background: rgba(223, 35, 54, 0.08);
       border: 1px solid rgba(223, 35, 54, 0.16);
       border-radius: 999px;
-      font-size: 11.5px;
+      font-size: 9.5px;
       font-weight: 900;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
 
     .global-search input {
