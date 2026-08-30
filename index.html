@@ -4499,7 +4499,11 @@
       return norm(text).replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 70) || "case";
     }
 
-    function category(area) {
+    function category(rowOrArea) {
+      const isRow = rowOrArea && typeof rowOrArea === "object";
+      const area = isRow ? value(rowOrArea, fields.area) : rowOrArea;
+      const sector = isRow ? value(rowOrArea, fields.sector) : "";
+      if (norm(sector).includes("insaat")) return "dunya";
       const text = norm(area);
       if (text.includes("dunya")) return "dunya";
       if (text.includes("ekoloji")) return "ekoloji";
@@ -5014,7 +5018,7 @@
             id: row.__atlasId || `case-${index + 1}`,
             index: Number(row.__atlasIndex || index + 1),
             slug: slugify(value(row, fields.title)),
-            category: category(value(row, fields.area)),
+            category: category(row),
             scopeKind: scopeKindFor(row),
             statusKind: statusKind(value(row, fields.status)),
             verification,
@@ -5585,7 +5589,7 @@
     }
 
     function posterAccentFor(row) {
-      const key = category(value(row, fields.area));
+      const key = category(row);
       if (key === "ekoloji") return ["#168a4a", "#dff5e8"];
       if (key === "adalet") return ["#7357c8", "#eee9ff"];
       if (key === "dunya") return ["#1f6ed4", "#e8f0ff"];
