@@ -4204,6 +4204,10 @@
         .replace(/ı/g, "i");
     }
 
+    function isEylemAlan(row) {
+      return norm(value(row, fields.area)) === "eylem";
+    }
+
     function esc(text) {
       return String(text || "")
         .replace(/&/g, "&amp;")
@@ -4291,6 +4295,7 @@
     }
 
     function shouldShowDayCounter(row) {
+      if (isEylemAlan(row)) return false;
       const kind = row?.statusKind || statusKind(value(row, fields.status));
       if (kind === "won") return false;
       const statusText = norm(value(row, fields.status));
@@ -5046,7 +5051,7 @@
           <h3>${esc(value(entry.row, fields.title))}</h3>
           <div class="tag-row">
             <span class="tag">${esc(value(entry.row, fields.area))}</span>
-            <span class="tag">${esc(value(entry.row, fields.status))}</span>
+            ${isEylemAlan(entry.row) ? "" : `<span class="tag">${esc(value(entry.row, fields.status))}</span>`}
           </div>
           <p>${esc(locationLabel)}</p>
           <button type="button" data-open-case="${esc(entry.row.id)}">Detaylar</button>
@@ -5195,7 +5200,7 @@
           <p class="case-location">${esc(value(row, fields.location))}</p>
           <div class="tag-row">
             <span class="tag">${esc(value(row, fields.area))}</span>
-            <span class="tag">${esc(value(row, fields.status))}</span>
+            ${isEylemAlan(row) ? "" : `<span class="tag">${esc(value(row, fields.status))}</span>`}
             ${favoriteIds.has(row.id) ? '<span class="tag">Favori</span>' : ""}
             ${row.isDiscovered ? '<span class="tag">Canlı keşif</span>' : ""}
             ${durationTag(row)}
@@ -5396,7 +5401,7 @@
       els.caseTitle.textContent = value(row, fields.title);
       els.caseMeta.innerHTML = `
         <span class="tag">${esc(value(row, fields.area))}</span>
-        <span class="tag">${esc(value(row, fields.status))}</span>
+        ${isEylemAlan(row) ? "" : `<span class="tag">${esc(value(row, fields.status))}</span>`}
         ${favoriteIds.has(row.id) ? '<span class="tag">Favori</span>' : ""}
         ${row.isDiscovered ? '<span class="tag">Canlı keşif</span>' : ""}
         ${durationTag(row)}
@@ -5726,13 +5731,15 @@
     }
 
     function renderSummary(row) {
+      const eylem = isEylemAlan(row);
       return `
         <div class="detail-section">
           <div class="case-snapshot">
+            ${eylem ? "" : `
             <div>
               <span>Durum</span>
               <strong>${esc(value(row, fields.status) || "Belirsiz")}</strong>
-            </div>
+            </div>`}
             <div>
               <span>Alan</span>
               <strong>${esc(value(row, fields.area) || "Belirsiz")}</strong>
@@ -6488,7 +6495,7 @@
         <h3>${esc(value(row, fields.title))}</h3>
         <p>${esc(newsText)}</p>
         <div class="card-grid">
-          <div class="card-fact"><b>Durum</b><span>${esc(value(row, fields.status) || "Belirsiz")}</span></div>
+          ${isEylemAlan(row) ? "" : `<div class="card-fact"><b>Durum</b><span>${esc(value(row, fields.status) || "Belirsiz")}</span></div>`}
           <div class="card-fact"><b>Yer</b><span>${esc(value(row, fields.location) || "Belirsiz")}</span></div>
           <div class="card-fact"><b>Aktörler</b><span>${esc(value(row, fields.actors) || "Belirsiz")}</span></div>
           <div class="card-fact"><b>Talep / neden</b><span>${esc(value(row, fields.reason) || "Belirsiz")}</span></div>
@@ -8032,7 +8039,7 @@
           ${claim("Başlangıç tarihi", value(row, fields.startDate))}
           ${durationClaim(row)}
           ${claim("Eylem biçimi", value(row, fields.method))}
-          ${claim("Durum", value(row, fields.status))}
+          ${isEylemAlan(row) ? "" : claim("Durum", value(row, fields.status))}
           ${claim("Bilgiler", value(row, fields.latest))}
         </div>
       `;
