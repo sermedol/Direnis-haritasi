@@ -4157,7 +4157,11 @@
     let markerRenderToken = 0;
     let markerRenderHandle = null;
     let pendingMapRevealId = "";
-    let eylemPinId = "";
+    let tempPinId = "";
+    // Varsayılan olarak pinlenenler: Eylem olmayan ve Durum = "Devam Ediyor" kayıtlar.
+    function isPinnedByDefault(row) {
+      return !isEylemAlan(row) && norm(value(row, fields.status)) === "devam ediyor";
+    }
     let selectedId = null;
     let activeTab = "summary";
     let liveCache = new Map();
@@ -5190,9 +5194,9 @@
       // Harita şimdilik yalnızca Türkiye kayıtlarını gösterir; Dünya kapsamlı
       // kayıtlar mücadele listesinde görünmeye devam eder, haritada pin olarak
       // çıkmaz.
-      // Haritada yalnızca Durum = "Devam Ediyor" kayıtları pinlenir. Eylemler pinlenmez;
-      // yalnızca kartına tıklanan Eylemin pini geçici olarak açılır. Diğerleri listede kalır.
-      const visibleIds = new Set(filteredCases().filter((row) => row.scopeKind !== "world" && (isEylemAlan(row) ? row.id === eylemPinId : norm(value(row, fields.status)) === "devam ediyor")).map((row) => row.id));
+      // Haritada yalnızca Durum = "Devam Ediyor" olan (Eylem olmayan) kayıtlar pinlenir.
+      // Eylemler ve sonuçlananlar listede kalır; kartına tıklanan kaydın pini geçici olarak açılır.
+      const visibleIds = new Set(filteredCases().filter((row) => row.scopeKind !== "world" && (isPinnedByDefault(row) || row.id === tempPinId)).map((row) => row.id));
       return points.filter((entry) => visibleIds.has(entry.row.id));
     }
 
@@ -5445,12 +5449,12 @@
       setPanelOpen(true);
       renderList(filteredCases());
       renderDetail();
-      const previousEylemPin = eylemPinId;
+      const previousTempPin = tempPinId;
       const pickedRow = selectedCase();
-      eylemPinId = pickedRow && isEylemAlan(pickedRow) ? id : "";
-      if (eylemPinId !== previousEylemPin) renderMarkers({ fitBounds: false });
+      tempPinId = pickedRow && !isPinnedByDefault(pickedRow) ? id : "";
+      if (tempPinId !== previousTempPin) renderMarkers({ fitBounds: false });
       if (options.focusMap === false) return;
-      if (eylemPinId && eylemPinId !== previousEylemPin) {
+      if (tempPinId && tempPinId !== previousTempPin) {
         const revealWhenPinned = (tries) => {
           const pin = (markerByCase.get(id) || [])[0];
           if (pin && markerLayer.hasLayer(pin) && markerRenderHandle === null) {
