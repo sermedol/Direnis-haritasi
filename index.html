@@ -4141,9 +4141,9 @@
     let refreshTimer = null;
     let durationRefreshTimer = null;
     let lastDurationDayKey = "";
-    // Varsayılan görünüm tüm kayıtları gösterir; Süren/Favoriler yalnızca
-    // isteğe bağlı daraltma filtreleridir, hiçbir kayıt gizli kalmaz.
-    let activeSmartFilter = "all";
+    // Varsayılan görünüm yalnızca süren kayıtları gösterir. Sonuçlanmış kayıtlar
+    // silinmez: Durum filtresiyle ya da "Süren" düğmesine tekrar basılarak görünür.
+    let activeSmartFilter = "active";
 
     const FIELD_ALIASES = {
       "Alan": ["Alan", "Kategori", "Başlık alanı", "Baslik alani"],
@@ -5147,7 +5147,8 @@
       // Harita şimdilik yalnızca Türkiye kayıtlarını gösterir; Dünya kapsamlı
       // kayıtlar mücadele listesinde görünmeye devam eder, haritada pin olarak
       // çıkmaz.
-      const visibleIds = new Set(filteredCases().filter((row) => row.scopeKind !== "world").map((row) => row.id));
+      // Yalnızca Durum = "Devam Ediyor" olan kayıtlar haritada pinlenir; diğerleri listede kalır.
+      const visibleIds = new Set(filteredCases().filter((row) => row.scopeKind !== "world" && norm(value(row, fields.status)) === "devam ediyor").map((row) => row.id));
       return points.filter((entry) => visibleIds.has(entry.row.id));
     }
 
@@ -5267,7 +5268,7 @@
     function renderStats(rows) {
       const allRows = cases;
       els.visibleCount.textContent = `${rows.length} kayıt`;
-      els.activeCount.textContent = allRows.filter((row) => row.statusKind === "active").length;
+      els.activeCount.textContent = allRows.filter((row) => norm(value(row, fields.area)) === "isci direnisi" && norm(value(row, fields.status)) === "devam ediyor").length;
       syncSmartFilters();
     }
 
