@@ -5147,8 +5147,8 @@
       // Harita şimdilik yalnızca Türkiye kayıtlarını gösterir; Dünya kapsamlı
       // kayıtlar mücadele listesinde görünmeye devam eder, haritada pin olarak
       // çıkmaz.
-      // Yalnızca Durum = "Devam Ediyor" olan kayıtlar haritada pinlenir; diğerleri listede kalır.
-      const visibleIds = new Set(filteredCases().filter((row) => row.scopeKind !== "world" && norm(value(row, fields.status)) === "devam ediyor").map((row) => row.id));
+      // Haritada yalnızca Durum = "Devam Ediyor" kayıtları pinlenir; Eylemler Durum'dan bağımsız pinlenir. Diğerleri listede kalır.
+      const visibleIds = new Set(filteredCases().filter((row) => row.scopeKind !== "world" && (isEylemAlan(row) || norm(value(row, fields.status)) === "devam ediyor")).map((row) => row.id));
       return points.filter((entry) => visibleIds.has(entry.row.id));
     }
 
