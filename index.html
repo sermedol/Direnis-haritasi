@@ -4141,9 +4141,9 @@
     let refreshTimer = null;
     let durationRefreshTimer = null;
     let lastDurationDayKey = "";
-    // Varsayılan görünüm yalnızca süren kayıtları gösterir. Sonuçlanmış kayıtlar
-    // silinmez: Durum filtresiyle ya da "Süren" düğmesine tekrar basılarak görünür.
-    let activeSmartFilter = "active";
+    // Liste, arama ve mobil liste tüm kayıtları gösterir; haritada ise yalnızca
+    // Durum = "Devam Ediyor" kayıtları pinlenir (bkz. filteredPoints).
+    let activeSmartFilter = "all";
 
     const FIELD_ALIASES = {
       "Alan": ["Alan", "Kategori", "Başlık alanı", "Baslik alani"],
