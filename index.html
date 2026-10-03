@@ -3586,8 +3586,16 @@
       min-height: 0;
       padding: 9px 10px;
       border-radius: 18px;
-      cursor: default;
-      pointer-events: none;
+      cursor: pointer;
+      pointer-events: auto;
+      box-shadow: 0 6px 16px rgba(15, 23, 42, 0.2), 0 1px 3px rgba(15, 23, 42, 0.14);
+    }
+    .map-summary .mini-stat:hover,
+    .map-summary .mini-stat:focus-visible {
+      box-shadow: 0 10px 22px rgba(15, 23, 42, 0.26), 0 2px 5px rgba(15, 23, 42, 0.16);
+    }
+    .map-summary .mini-stat.is-active {
+      box-shadow: 0 0 0 3px rgba(201, 39, 45, 0.16), 0 8px 18px rgba(15, 23, 42, 0.22);
     }
     .map-summary .mini-stat span {
       font-size: 10.5px;
@@ -3643,11 +3651,11 @@
           <button id="fitFiltered" class="hud-button" type="button">Görüneni Sığdır</button>
         </div>
         <div class="map-summary">
-          <div class="mini-stat"><span>Aktif Ekoloji Direnişleri</span><strong id="activeEkoloji">0</strong></div>
-          <div class="mini-stat"><span>Aktif Zindan Direnişleri</span><strong id="activeZindan">0</strong></div>
-          <div class="mini-stat"><span>Aktif Kayıp Yakını Mücadeleleri</span><strong id="activeKayip">0</strong></div>
-          <div class="mini-stat"><span>Aktif İşçi Direnişleri</span><strong id="activeCount">0</strong></div>
-          <div class="mini-stat"><span>Aktif İş Cinayeti Davaları</span><strong id="activeCinayet">0</strong></div>
+          <button class="mini-stat" type="button" data-stat-area="Ekoloji Direnişi"><span>Aktif Ekoloji Direnişleri</span><strong id="activeEkoloji">0</strong></button>
+          <button class="mini-stat" type="button" data-stat-area="Zindan Direnişi"><span>Aktif Zindan Direnişleri</span><strong id="activeZindan">0</strong></button>
+          <button class="mini-stat" type="button" data-stat-area="Kayıp Yakınları"><span>Aktif Kayıp Yakını Mücadeleleri</span><strong id="activeKayip">0</strong></button>
+          <button class="mini-stat" type="button" data-stat-area="İşçi Direnişi"><span>Aktif İşçi Direnişleri</span><strong id="activeCount">0</strong></button>
+          <button class="mini-stat" type="button" data-stat-area="İş Cinayeti Davası"><span>Aktif İş Cinayeti Davaları</span><strong id="activeCinayet">0</strong></button>
         </div>
       </section>
 
@@ -3941,6 +3949,7 @@
       activeZindan: document.getElementById("activeZindan"),
       activeKayip: document.getElementById("activeKayip"),
       activeCinayet: document.getElementById("activeCinayet"),
+      statAreas: Array.from(document.querySelectorAll("[data-stat-area]")),
       fitFiltered: document.getElementById("fitFiltered"),
       caseTitle: document.getElementById("caseTitle"),
       caseMeta: document.getElementById("caseMeta"),
@@ -5309,6 +5318,9 @@
       els.activeKayip.textContent = countActive("kayip yakinlari");
       els.activeCount.textContent = countActive("isci direnisi");
       els.activeCinayet.textContent = countActive("is cinayeti davasi");
+      els.statAreas.forEach((button) => {
+        button.classList.toggle("is-active", els.areaFilter.value === button.dataset.statArea && els.statusFilter.value === "Devam Ediyor");
+      });
       syncSmartFilters();
     }
 
@@ -8339,6 +8351,21 @@
       button.addEventListener("click", () => setSmartFilter(
         activeSmartFilter === button.dataset.statFilter ? "all" : button.dataset.statFilter
       ));
+    });
+    els.statAreas.forEach((button) => {
+      button.addEventListener("click", () => {
+        const area = button.dataset.statArea;
+        const alreadyOn = els.areaFilter.value === area && els.statusFilter.value === "Devam Ediyor";
+        activeSmartFilter = "all";
+        resetStandardFilters();
+        if (!alreadyOn) {
+          els.areaFilter.value = area;
+          els.statusFilter.value = "Devam Ediyor";
+        }
+        const rows = filteredCases();
+        selectedId = rows.length ? rows[0].id : null;
+        render({ fitBounds: true });
+      });
     });
     if (els.fitFiltered) els.fitFiltered.addEventListener("click", requestFitFiltered);
     els.favoriteCase.addEventListener("click", toggleSelectedFavorite);
