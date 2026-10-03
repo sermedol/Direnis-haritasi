@@ -4148,6 +4148,7 @@
     let markerRenderToken = 0;
     let markerRenderHandle = null;
     let pendingMapRevealId = "";
+    let eylemPinId = "";
     let selectedId = null;
     let activeTab = "summary";
     let liveCache = new Map();
@@ -5180,8 +5181,9 @@
       // Harita şimdilik yalnızca Türkiye kayıtlarını gösterir; Dünya kapsamlı
       // kayıtlar mücadele listesinde görünmeye devam eder, haritada pin olarak
       // çıkmaz.
-      // Haritada yalnızca Durum = "Devam Ediyor" kayıtları pinlenir; Eylemler Durum'dan bağımsız pinlenir. Diğerleri listede kalır.
-      const visibleIds = new Set(filteredCases().filter((row) => row.scopeKind !== "world" && (isEylemAlan(row) || norm(value(row, fields.status)) === "devam ediyor")).map((row) => row.id));
+      // Haritada yalnızca Durum = "Devam Ediyor" kayıtları pinlenir. Eylemler pinlenmez;
+      // yalnızca kartına tıklanan Eylemin pini geçici olarak açılır. Diğerleri listede kalır.
+      const visibleIds = new Set(filteredCases().filter((row) => row.scopeKind !== "world" && (isEylemAlan(row) ? row.id === eylemPinId : norm(value(row, fields.status)) === "devam ediyor")).map((row) => row.id));
       return points.filter((entry) => visibleIds.has(entry.row.id));
     }
 
@@ -5431,7 +5433,21 @@
       setPanelOpen(true);
       renderList(filteredCases());
       renderDetail();
+      const previousEylemPin = eylemPinId;
+      const pickedRow = selectedCase();
+      eylemPinId = pickedRow && isEylemAlan(pickedRow) ? id : "";
+      if (eylemPinId !== previousEylemPin) renderMarkers({ fitBounds: false });
       if (options.focusMap === false) return;
+      if (eylemPinId && eylemPinId !== previousEylemPin) {
+        const revealWhenPinned = (tries) => {
+          const pin = (markerByCase.get(id) || [])[0];
+          if (pin && markerLayer.hasLayer(pin) && markerRenderHandle === null) {
+            window.setTimeout(() => { if (selectedId === id) revealCaseOnMap(id); }, 500);
+          } else if (tries < 60 && selectedId === id) window.setTimeout(() => revealWhenPinned(tries + 1), 100);
+        };
+        revealWhenPinned(0);
+        return;
+      }
       if (!revealCaseOnMap(id)) pendingMapRevealId = id;
     }
 
