@@ -5196,7 +5196,10 @@
       // çıkmaz.
       // Haritada yalnızca Durum = "Devam Ediyor" olan (Eylem olmayan) kayıtlar pinlenir.
       // Eylemler ve sonuçlananlar listede kalır; kartına tıklanan kaydın pini geçici olarak açılır.
-      const visibleIds = new Set(filteredCases().filter((row) => row.scopeKind !== "world" && (isPinnedByDefault(row) || row.id === tempPinId)).map((row) => row.id));
+      // Durum filtresinde "Devam Ediyor" dışında bir durum (ör. Sonuçlandı) seçiliyse o kayıtların hepsi pinlenir.
+      const statusPick = norm(els.statusFilter.value);
+      const pinAllByStatus = Boolean(statusPick) && statusPick !== "devam ediyor";
+      const visibleIds = new Set(filteredCases().filter((row) => row.scopeKind !== "world" && (isPinnedByDefault(row) || row.id === tempPinId || pinAllByStatus)).map((row) => row.id));
       return points.filter((entry) => visibleIds.has(entry.row.id));
     }
 
