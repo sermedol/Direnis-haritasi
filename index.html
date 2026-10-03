@@ -3576,6 +3576,31 @@
         font-size: 16px;
       }
     }
+
+    /* Haritanın altındaki 5 ayrı "Aktif ..." sayaç kutusu */
+    .map-summary { flex-wrap: wrap; }
+    .map-summary .mini-stat {
+      flex: 1 1 0;
+      min-width: 0;
+      max-width: 168px;
+      min-height: 0;
+      padding: 9px 10px;
+      border-radius: 18px;
+      cursor: default;
+      pointer-events: none;
+    }
+    .map-summary .mini-stat span {
+      font-size: 10.5px;
+      line-height: 1.2;
+      white-space: normal;
+      overflow: visible;
+    }
+    .map-summary .mini-stat strong { font-size: 22px; margin-top: 4px; }
+    @media (max-width: 780px) {
+      .map-summary .mini-stat { flex: 1 1 calc(33.333% - 8px); max-width: none; min-height: 0; padding: 6px 6px; }
+      .map-summary .mini-stat span { font-size: 9.5px; }
+      .map-summary .mini-stat strong { font-size: 18px; margin-top: 2px; }
+    }
   </style>
 </head>
 <body>
@@ -3618,7 +3643,11 @@
           <button id="fitFiltered" class="hud-button" type="button">Görüneni Sığdır</button>
         </div>
         <div class="map-summary">
-          <button class="mini-stat" type="button" data-stat-filter="active"><span>Aktif direnişler</span><strong id="activeCount">0</strong></button>
+          <div class="mini-stat"><span>Aktif Ekoloji Direnişleri</span><strong id="activeEkoloji">0</strong></div>
+          <div class="mini-stat"><span>Aktif Zindan Direnişleri</span><strong id="activeZindan">0</strong></div>
+          <div class="mini-stat"><span>Aktif Kayıp Yakını Mücadeleleri</span><strong id="activeKayip">0</strong></div>
+          <div class="mini-stat"><span>Aktif İşçi Direnişleri</span><strong id="activeCount">0</strong></div>
+          <div class="mini-stat"><span>Aktif İş Cinayeti Davaları</span><strong id="activeCinayet">0</strong></div>
         </div>
       </section>
 
@@ -3908,6 +3937,10 @@
       detailPanel: document.getElementById("detailPanel"),
       visibleCount: document.getElementById("visibleCount"),
       activeCount: document.getElementById("activeCount"),
+      activeEkoloji: document.getElementById("activeEkoloji"),
+      activeZindan: document.getElementById("activeZindan"),
+      activeKayip: document.getElementById("activeKayip"),
+      activeCinayet: document.getElementById("activeCinayet"),
       fitFiltered: document.getElementById("fitFiltered"),
       caseTitle: document.getElementById("caseTitle"),
       caseMeta: document.getElementById("caseMeta"),
@@ -5268,7 +5301,12 @@
     function renderStats(rows) {
       const allRows = cases;
       els.visibleCount.textContent = `${rows.length} kayıt`;
-      els.activeCount.textContent = allRows.filter((row) => norm(value(row, fields.area)) === "isci direnisi" && norm(value(row, fields.status)) === "devam ediyor").length;
+      const countActive = (area) => allRows.filter((row) => norm(value(row, fields.area)) === area && norm(value(row, fields.status)) === "devam ediyor").length;
+      els.activeEkoloji.textContent = countActive("ekoloji direnisi");
+      els.activeZindan.textContent = countActive("zindan direnisi");
+      els.activeKayip.textContent = countActive("kayip yakinlari");
+      els.activeCount.textContent = countActive("isci direnisi");
+      els.activeCinayet.textContent = countActive("is cinayeti davasi");
       syncSmartFilters();
     }
 
