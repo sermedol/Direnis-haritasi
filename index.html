@@ -5199,7 +5199,9 @@
       // Durum filtresinde "Devam Ediyor" dışında bir durum (ör. Sonuçlandı) seçiliyse o kayıtların hepsi pinlenir.
       const statusPick = norm(els.statusFilter.value);
       const pinAllByStatus = Boolean(statusPick) && statusPick !== "devam ediyor";
-      const visibleIds = new Set(filteredCases().filter((row) => row.scopeKind !== "world" && (isPinnedByDefault(row) || row.id === tempPinId || pinAllByStatus)).map((row) => row.id));
+      // Alan filtresinde "Eylem" seçiliyse o filtreye giren eylemlerin hepsi pinlenir.
+      const pinAllEylem = norm(els.areaFilter.value) === "eylem";
+      const visibleIds = new Set(filteredCases().filter((row) => row.scopeKind !== "world" && (isPinnedByDefault(row) || row.id === tempPinId || pinAllByStatus || pinAllEylem)).map((row) => row.id));
       return points.filter((entry) => visibleIds.has(entry.row.id));
     }
 
